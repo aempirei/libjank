@@ -16,7 +16,7 @@ void usage(char *);
 
 void printresp(const char *, size_t);
 
-ssize_t readn(int,void *, size_t);
+ssize_t readn(int, void *, size_t);
 
 struct config {
 	bool verbose = false;
