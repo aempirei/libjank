@@ -16,6 +16,8 @@ void usage(char *);
 
 void printresp(const char *, size_t);
 
+ssize_t readn(int,void *, size_t);
+
 struct config {
 	bool verbose = false;
 	bool test = false;
@@ -86,46 +88,48 @@ int main(int argc, char **argv) {
 			std::cout << "entering test mode" << std::endl;
 
 		//
+		// communication test
+		//
+
+#define TEST_BUFFER(S, SN, T, TN) (SN == TN and memcmp(S, T, TN) == 0)
+
+		if(c.verbose)
+			std::cout << "Performing communication test" << std::endl;
+
+		if(write(msr.fd, ESC "e", 2) != 2) {
+			perror("Communication test failed on write()");
+			return -1;
+		}
+
+		n = readn(msr.fd, buffer, 2);
+		if(n == -1) {
+			perror("Communication test failed on readn()");
+			return -1;
+		}
+
+		std::cout << (TEST_BUFFER(buffer, n, ESC "y", 2) ? "passed." : "failed.") << std::endl;
+		printresp(buffer, n);
+
+		//
 		// RAM test
 		//
 
 		if(c.verbose)
 			std::cout << "Performing RAM test" << std::endl;
 
-		if(write(msr.fd, ESC "\x87", 2) != 2)
+		if(write(msr.fd, ESC "\x87", 2) != 2) {
 			perror("RAM test failed on write()");
-
-		n = read(msr.fd, buffer, sizeof(buffer));
-		if(n == -1) {
-			perror("RAM test failed on read()");
-		} else {
-			if(n == 2 and memcmp(buffer, ESC "0", 2) == 0)
-				std::cout << "passed." << std::endl;
-			else
-				std::cout << "failed." << std::endl;
-			printresp(buffer, n);
+			return -1;
 		}
 
-		//
-		// communication test
-		//
-
-		if(c.verbose)
-			std::cout << "Performing communication test" << std::endl;
-
-		if(write(msr.fd, ESC "e", 2) != 2)
-			perror("Communication test failed on write()");
-
-		n = read(msr.fd, buffer, sizeof(buffer));
+		n = readn(msr.fd, buffer, 2);
 		if(n == -1) {
-			perror("Communication test failed on read()");
-		} else {
-			if(n == 2 and memcmp(buffer, ESC "y", 2) == 0)
-				std::cout << "passed." << std::endl;
-			else
-				std::cout << "failed." << std::endl;
-			printresp(buffer, n);
+			perror("RAM test failed on readn()");
+			return -1;
 		}
+
+		std::cout << (TEST_BUFFER(buffer, n, ESC "0", 2) ? "passed." : "failed.") << std::endl;
+		printresp(buffer, n);
 
 		//
 		// sensor test
@@ -134,23 +138,23 @@ int main(int argc, char **argv) {
 		if(c.verbose)
 			std::cout << "Performing sensor test" << std::endl;
 
-		if(write(msr.fd, ESC "\x86", 2) != 2)
+		if(write(msr.fd, ESC "\x86", 2) != 2) {
 			perror("Sensor test failed on write()");
-
-			std::cout << "Please swipe a card." << std::endl;
-
-		n = read(msr.fd, buffer, sizeof(buffer));
-		if(n == -1) {
-			perror("Sensor test failed on read()");
-		} else {
-			if(n == 2 and memcmp(buffer, ESC "0", 2) == 0)
-				std::cout << "passed." << std::endl;
-			else
-				std::cout << "failed." << std::endl;
-			printresp(buffer, n);
+			return -1;
 		}
 
+		std::cout << "Please swipe a card." << std::endl;
+
+		n = readn(msr.fd, buffer, 2);
+		if(n == -1) {
+			perror("Sensor test failed on readn()");
+			return -1;
+		}
+
+		std::cout << (TEST_BUFFER(buffer, n, ESC "0", 2) ? "passed." : "failed.") << std::endl;
+		printresp(buffer, n);
 	}
+
 
 	msr.stop();
 
@@ -158,6 +162,29 @@ int main(int argc, char **argv) {
 		std::cout << "goodbye." << std::endl;
 
 	return 0;
+}
+
+ssize_t readn(int fd, void *buffer, size_t left) {
+
+	char *p = (char *)buffer;
+	size_t done = 0;
+	ssize_t n;
+
+	while(left > 0) {
+		n = read(fd, p, left);
+
+		if(n == -1) {
+			if(errno == EINTR)
+				continue;
+			return -1;
+		}
+
+		left -= n;
+		p += n;
+		done += n;
+	}
+
+	return done;
 }
 
 void printresp(const char *resp, size_t resp_sz) {
