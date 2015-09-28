@@ -45,7 +45,7 @@ namespace jank {
 
 		options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
 
-		options.c_cc[VMIN]  = 1;
+		options.c_cc[VMIN]  = 2;
 		options.c_cc[VTIME] = 0;
 
 		options.c_oflag &= ~OPOST;

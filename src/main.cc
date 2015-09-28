@@ -95,16 +95,14 @@ int main(int argc, char **argv) {
 		if(write(msr.fd, ESC "\x87", 2) != 2)
 			perror("RAM test failed on write()");
 
-		msleep(100);
-
 		n = read(msr.fd, buffer, sizeof(buffer));
 		if(n == -1) {
 			perror("RAM test failed on read()");
 		} else {
 			if(n == 2 and memcmp(buffer, ESC "0", 2) == 0)
-				std::cout << "PASSED..." << std::endl;
+				std::cout << "passed." << std::endl;
 			else
-				std::cout << "FAILED..." << std::endl;
+				std::cout << "failed." << std::endl;
 			printresp(buffer, n);
 		}
 
@@ -113,23 +111,45 @@ int main(int argc, char **argv) {
 		//
 
 		if(c.verbose)
-			std::cout << "Performing Communication test" << std::endl;
+			std::cout << "Performing communication test" << std::endl;
 
 		if(write(msr.fd, ESC "e", 2) != 2)
 			perror("Communication test failed on write()");
-
-		msleep(100);
 
 		n = read(msr.fd, buffer, sizeof(buffer));
 		if(n == -1) {
 			perror("Communication test failed on read()");
 		} else {
 			if(n == 2 and memcmp(buffer, ESC "y", 2) == 0)
-				std::cout << "PASSED..." << std::endl;
+				std::cout << "passed." << std::endl;
 			else
-				std::cout << "FAILED..." << std::endl;
+				std::cout << "failed." << std::endl;
 			printresp(buffer, n);
 		}
+
+		//
+		// sensor test
+		//
+
+		if(c.verbose)
+			std::cout << "Performing sensor test" << std::endl;
+
+		if(write(msr.fd, ESC "\x86", 2) != 2)
+			perror("Sensor test failed on write()");
+
+			std::cout << "Please swipe a card." << std::endl;
+
+		n = read(msr.fd, buffer, sizeof(buffer));
+		if(n == -1) {
+			perror("Sensor test failed on read()");
+		} else {
+			if(n == 2 and memcmp(buffer, ESC "0", 2) == 0)
+				std::cout << "passed." << std::endl;
+			else
+				std::cout << "failed." << std::endl;
+			printresp(buffer, n);
+		}
+
 	}
 
 	msr.stop();
