@@ -30,11 +30,13 @@ int main(int argc, char **argv) {
 
 	config c;
 
-	char buffer[256];
+	char buffer[512];
+	// char *p;
 
 	int opt;
 
-	int n;
+	ssize_t n;
+	// ssize_t sz;
 
 	while((opt = getopt(argc, argv, "vtd:h")) != -1) {
 		switch(opt) {
@@ -107,8 +109,9 @@ int main(int argc, char **argv) {
 			return -1;
 		}
 
-		std::cout << (TEST_BUFFER(buffer, n, ESC "y", 2) ? "passed." : "failed.") << std::endl;
-		printresp(buffer, n);
+		std::cout << "Communication test " << (TEST_BUFFER(buffer, n, ESC "y", 2) ? "passed" : "failed") << '.' << std::endl;
+		if(c.verbose)
+			printresp(buffer, n);
 
 		//
 		// RAM test
@@ -128,8 +131,77 @@ int main(int argc, char **argv) {
 			return -1;
 		}
 
-		std::cout << (TEST_BUFFER(buffer, n, ESC "0", 2) ? "passed." : "failed.") << std::endl;
-		printresp(buffer, n);
+		std::cout << "RAM test " << (TEST_BUFFER(buffer, n, ESC "0", 2) ? "passed" : "failed") << '.' << std::endl;
+		if(c.verbose)
+			printresp(buffer, n);
+
+		//
+		// get device model
+		//
+
+		if(c.verbose)
+			std::cout << "Getting device model" << std::endl;
+
+		if(write(msr.fd, ESC "t", 2) != 2) {
+			perror("Get device model failed on write()");
+			return -1;
+		}
+
+		n = readn(msr.fd, buffer, 3);
+		if(n == -1) {
+			perror("Get device model failed on readn()");
+			return -1;
+		}
+
+		std::cout << "model " << (char)buffer[1] << std::endl;
+
+		/*
+
+		   memset(buffer, 0, sizeof(buffer));
+		   p = buffer;
+		   sz = 0;
+
+		   do { 
+		   n = read(msr.fd, p, sizeof(buffer) - sz);
+		   if(n == -1) {
+		   perror("Get device model failed on read()");
+		   return -1;
+		   }
+		   p += n;
+		   sz += n;
+		   } while(not (sz > 0 and buffer[0] == '\x1b' and buffer[sz - 1] == 'S'));
+
+		   if(c.verbose)
+		   printresp(buffer, sz);
+		 */
+
+		if(c.verbose)
+			printresp(buffer, n);
+
+		//
+		// get firmware version
+		//
+
+		if(c.verbose)
+			std::cout << "Getting firmware version" << std::endl;
+
+		if(write(msr.fd, ESC "v", 2) != 2) {
+			perror("Get firmware version failed on write()");
+			return -1;
+		}
+
+		buffer[9] = '\0';
+
+		n = readn(msr.fd, buffer, 9);
+		if(n == -1) {
+			perror("Get firmware version failed on readn()");
+			return -1;
+		}
+
+		std::cout << "firmware " << (buffer + 1) << std::endl;
+
+		if(c.verbose)
+			printresp(buffer, n);
 
 		//
 		// sensor test
@@ -151,8 +223,9 @@ int main(int argc, char **argv) {
 			return -1;
 		}
 
-		std::cout << (TEST_BUFFER(buffer, n, ESC "0", 2) ? "passed." : "failed.") << std::endl;
-		printresp(buffer, n);
+		std::cout << "Sensor test " << (TEST_BUFFER(buffer, n, ESC "0", 2) ? "passed" : "failed") << '.' << std::endl;
+		if(c.verbose)
+			printresp(buffer, n);
 	}
 
 
