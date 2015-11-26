@@ -49,5 +49,7 @@ namespace jank {
 					ssize_t writen(const void *, size_t) const;
 					ssize_t readn(void *, size_t) const;
 					int memncmp(const void *, size_t, const void *, size_t) const;
+
+					std::string hex(const char *, size_t) const;
 	};
 }

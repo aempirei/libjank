@@ -13,7 +13,8 @@
 
 #include <jank.hh>
 
-void printresp(const char *, size_t);
+void signal_handler(int);
+void exit_handler();
 
 namespace config {
 
@@ -82,6 +83,7 @@ namespace config {
 }
 
 void exit_handler() {
+		config::msr.off();
 		if(config::verbose)
 				std::cout << "[STOP]" << std::endl;
 		config::msr.stop();
@@ -171,14 +173,4 @@ int main(int argc, char **argv) {
 		}
 
 		return EXIT_SUCCESS;
-}
-
-void printresp(const char *resp, size_t resp_sz) {
-
-		std::cout << std::dec << resp_sz << " bytes:";
-
-		for(unsigned int i = 0; i < resp_sz; i++)
-				std::cout << ' ' << std::hex << std::setfill('0') << std::setw(2) << (int)resp[i];
-
-		std::cout << std::endl;
 }

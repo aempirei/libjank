@@ -1,10 +1,15 @@
-#include <jank.hh>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
+#include <string>
+
 #include <cstring>
 
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+#include <jank.hh>
 
 namespace jank {
 
@@ -106,7 +111,7 @@ namespace jank {
 						return 0;
 
 				if(buf[0] != '\033' or buf[2] != 'S') {
-						errno = EBADMSG;
+						errno = ENOMEDIUM;
 						return 0;
 				}
 
@@ -149,6 +154,8 @@ namespace jank {
 						return false;
 				}
 
+				std::cout << hex(buf, n) << std::endl;
+
 				bool X = memncmp(buf, n, rx, rx_sz) == 0;
 
 				delete[] buf;
@@ -175,6 +182,11 @@ namespace jank {
 				size_t done = 0;
 				ssize_t n;
 
+				if(not active) {
+						errno = ENOMEDIUM;
+						return -1;
+				}
+
 				while(left > 0) {
 
 						n = write(fd, p + done, left);
@@ -200,6 +212,11 @@ namespace jank {
 				size_t done = 0;
 				ssize_t n;
 
+				if(not active) {
+						errno = ENOMEDIUM;
+						return -1;
+				}
+
 				while(left > 0) {
 
 						n = read(fd, p + done, left);
@@ -215,5 +232,19 @@ namespace jank {
 				}
 
 				return done;
+		}
+
+		std::string msr::hex(const char *s, size_t sz) const {
+
+				std::stringstream ss;
+
+				ss << std::dec << "char s[" << sz << "] = {";
+
+				for(unsigned int n = 0; n < sz; n++)
+						std::cout << ' ' << std::hex << std::setfill('0') << std::setw(2) << (int)s[n];
+
+				std::cout << " };" << std::endl;
+
+				return ss.str();
 		}
 }
