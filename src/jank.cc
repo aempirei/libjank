@@ -11,6 +11,8 @@
 
 #include <jank.hh>
 
+#define ESC "\033"
+
 namespace jank {
 
 		msr::msr() : active(false) {

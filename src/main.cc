@@ -4,12 +4,16 @@
 #include <iomanip>
 
 #include <cstring>
+#include <cstdio>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include <signal.h>
+
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include <jank.hh>
 
@@ -18,6 +22,7 @@ namespace config {
 		bool verbose = false;
 		bool info = false;
 		bool test = false;
+		bool cli = false;
 
 		const char *glob = "/dev/ttyUSB*";
 		const char *device = "/dev/ttyUSB0";
@@ -34,9 +39,11 @@ namespace config {
 				std::cout << std::endl << "usage: " << prog << " [options] -d device" << std::endl << std::endl;
 
 				std::cout << "\t-h          show this help" << std::endl;
-				std::cout << "\t-t          toggle test mode (default=" << (test ? "ENABLED" : "DISABLED") << ")" << std::endl;
-				std::cout << "\t-v          toggle verbose mode (default=" << (verbose ? "ENABLED" : "DISABLED") << ")" << std::endl;
-				std::cout << "\t-i          toggle info mode (default=" << (info ? "ENABLED" : "DISABLED") << ")" << std::endl;
+
+				std::cout << "\t-t          toggle test mode (default="         << (test    ? "ENABLED" : "DISABLED") << ")" << std::endl;
+				std::cout << "\t-v          toggle verbose mode (default="      << (verbose ? "ENABLED" : "DISABLED") << ")" << std::endl;
+				std::cout << "\t-i          toggle info mode (default="         << (info    ? "ENABLED" : "DISABLED") << ")" << std::endl;
+				std::cout << "\t-c          toggle command-line mode (default=" << (cli     ? "ENABLED" : "DISABLED") << ")" << std::endl;
 
 				std::cout << "\t-d device   filename of MSR-605 device";
 
@@ -57,13 +64,14 @@ namespace config {
 
 				int opt;
 
-				while((opt = getopt(argc, argv, "hvitd:")) != -1) {
+				while((opt = getopt(argc, argv, "hvitcd:")) != -1) {
 
 						switch(opt) {
 
 								case 'v': verbose = not verbose ; break;
 								case 'i': info    = not info    ; break;
 								case 't': test    = not test    ; break;
+								case 'c': cli     = not cli     ; break;
 
 								case 'd':
 										  device = optarg;
@@ -103,10 +111,13 @@ int main(int argc, char **argv) {
 		}
 
 		if(config::verbose) {
+
 				std::cout << "verbose=" << ( config::verbose ? "ENABLED" : "DISABLED" ) << std::endl;
-				std::cout << "test=" << ( config::test ? "ENABLED" : "DISABLED" ) << std::endl;
-				std::cout << "info=" << ( config::info ? "ENABLED" : "DISABLED" ) << std::endl;
-				std::cout << "glob=" << config::glob << std::endl;
+				std::cout << "test="    << ( config::test    ? "ENABLED" : "DISABLED" ) << std::endl;
+				std::cout << "info="    << ( config::info    ? "ENABLED" : "DISABLED" ) << std::endl;
+				std::cout << "cli="     << ( config::cli     ? "ENABLED" : "DISABLED" ) << std::endl;
+
+				std::cout << "glob="   << config::glob   << std::endl;
 				std::cout << "device=" << config::device << std::endl;
 		}
 
@@ -146,9 +157,11 @@ int main(int argc, char **argv) {
 				std::cout << "model=" << model << std::endl;
 				std::cout << "firmware=" << firmware << std::endl;
 				std::cout << "tracks=";
+
 				if(msr.has_track1()) std::cout << '1';
 				if(msr.has_track2()) std::cout << '2';
 				if(msr.has_track3()) std::cout << '3';
+
 				std::cout << std::endl;
 		}
 
@@ -156,16 +169,33 @@ int main(int argc, char **argv) {
 
 				std::cout << "/test-mode/" << std::endl;
 
+				std::cout << "; slide card for sensor test" << std::endl;
+
+				std::cout << "sensor-test: " << (msr.test_sensor() ? "PASS" : "FAIL") << std::endl;
 				std::cout << "comm-test: "   << (msr.test_comm  () ? "PASS" : "FAIL") << std::endl;
 				std::cout << "RAM-test: "    << (msr.test_ram   () ? "PASS" : "FAIL") << std::endl;
-				std::cout << "; slide card for sensor test" << std::endl;
-				std::cout << "sensor-test: " << (msr.test_sensor() ? "PASS" : "FAIL") << std::endl;
+		}
+
+		if(config::cli) {
+				std::string prompt = msr.firmware() + "> ";
+				char *line;
+
+				std::cout << "/cli-mode/" << std::endl;
+
+				do {	
+
+						line = readline(prompt.c_str());
+
+						free(line);
+
+				} while(line != nullptr);
 		}
 
 		return EXIT_SUCCESS;
 }
 
 void exit_handler() {
+		putchar('\n');
 		if(config::verbose)
 				std::cout << "[STOP]" << std::endl;
 }

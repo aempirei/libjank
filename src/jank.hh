@@ -4,7 +4,6 @@
 
 #include <unistd.h>
 
-#define ESC "\033"
 #define msleep(X) usleep((X) * 1000)
 
 namespace jank {
