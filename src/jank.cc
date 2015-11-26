@@ -27,15 +27,16 @@ namespace jank {
 
 				termios options;
 
-				if(active)
+				if(active) {
+						errno = ENOMEDIUM;
 						return false;
+				}
+
 				device = my_device;
 
 				fd = open(device.c_str(), O_RDWR | O_NOCTTY);
-				if(fd == -1) {
-						std::cerr << "unable to open " << device << ": " << strerror(errno) << std::endl;
+				if(fd == -1)
 						return false;
-				}
 
 				tcgetattr(fd, &options);
 
@@ -57,8 +58,9 @@ namespace jank {
 				options.c_oflag &= ~OPOST;
 
 				if(tcsetattr(fd, TCSANOW, &options) == -1) {
-						std::cerr << "unable to set terminal parameters: " << strerror(errno) << std::endl;
+						int e = errno;
 						close(fd);
+						errno = e;
 						return false;
 				}
 
@@ -69,8 +71,10 @@ namespace jank {
 
 		bool  msr::stop() {
 
-				if(not active)
+				if(not active) {
+						errno = ENOMEDIUM;
 						return false;
+				}
 
 				close(fd);
 				active = false;

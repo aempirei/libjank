@@ -13,9 +13,6 @@
 
 #include <jank.hh>
 
-void signal_handler(int);
-void exit_handler();
-
 namespace config {
 
 		bool verbose = false;
@@ -82,17 +79,8 @@ namespace config {
 		}
 }
 
-void exit_handler() {
-		if(config::verbose)
-				std::cout << "[STOP]" << std::endl;
-}
-
-void signal_handler(int signo) {
-		if(signo == SIGINT) {
-				signal(signo, SIG_IGN);
-				exit(EXIT_FAILURE);
-		}
-}
+void signal_handler(int);
+void exit_handler();
 
 int main(int argc, char **argv) {
 
@@ -133,7 +121,10 @@ int main(int argc, char **argv) {
 		if(config::verbose)
 				std::cout << "[RESET]" << std::endl;
 
-		if(not msr.reset  ()) perror("RESET command failed");
+		if(not msr.reset()) {
+				perror("RESET command failed");
+				return EXIT_FAILURE;
+		}
  
 		if(config::info) {
 
@@ -172,4 +163,16 @@ int main(int argc, char **argv) {
 		}
 
 		return EXIT_SUCCESS;
+}
+
+void exit_handler() {
+		if(config::verbose)
+				std::cout << "[STOP]" << std::endl;
+}
+
+void signal_handler(int signo) {
+		if(signo == SIGINT) {
+				signal(signo, SIG_IGN);
+				exit(EXIT_FAILURE);
+		}
 }
