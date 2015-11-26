@@ -82,13 +82,29 @@ namespace jank {
 				return true;
 		}
 
-		bool msr:: reset() const { return writen(ESC "a", 2) == 2; }
+		bool msr::reset() const {
+				return writen(ESC "a", 2) == 2;
+		}
 
-		bool msr::   red() const { return writen(ESC "\x85", 2) == 2; }
-		bool msr::yellow() const { return writen(ESC "\x84", 2) == 2; }
-		bool msr:: green() const { return writen(ESC "\x83", 2) == 2; }
-		bool msr::    on() const { return writen(ESC "\x82", 2) == 2; }
-		bool msr::   off() const { return writen(ESC "\x81", 2) == 2; }
+		bool msr::red() const {
+				return writen(ESC "\x85", 2) == 2;
+		}
+
+		bool msr::yellow() const {
+				return writen(ESC "\x84", 2) == 2;
+		}
+
+		bool msr::green() const {
+				return writen(ESC "\x83", 2) == 2;
+		}
+
+		bool msr::on() const {
+				return writen(ESC "\x82", 2) == 2;
+		}
+
+		bool msr::off() const {
+				return writen(ESC "\x81", 2) == 2;
+		}
 
 		bool msr::test_comm() const {
 				return expect(ESC "e", 2, ESC "y", 2);
