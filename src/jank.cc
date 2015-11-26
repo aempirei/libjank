@@ -17,9 +17,10 @@ namespace jank {
 		}
 
 		msr::~msr() {
-
-				if(active)
+				if(active) {
+						reset();
 						stop();
+				}
 		}
 
 		bool msr::start(const char *my_device) {
@@ -97,7 +98,21 @@ namespace jank {
 				return expect(ESC "\x86", 2, ESC "0", 2);
 		}
 
-		int msr::model() const {
+		bool msr::has_track1() const {
+				char m = model();
+				return m == '3' or m == '5';
+		}
+
+		bool msr::has_track2() const {
+				return true;
+		}
+
+		bool msr::has_track3() const {
+				char m = model();
+				return m == '2' or m == '3';
+		}
+
+		char msr::model() const {
 
 				constexpr size_t buf_sz = 3;
 				char buf[buf_sz];
@@ -145,16 +160,12 @@ namespace jank {
 
 				buf = new char[rx_sz];
 
-				sleep(1);
-
 				n = readn(buf, rx_sz);
 
 				if(n == -1) {
 						delete[] buf;
 						return false;
 				}
-
-				std::cout << hex(buf, n) << std::endl;
 
 				bool X = memncmp(buf, n, rx, rx_sz) == 0;
 
@@ -166,10 +177,6 @@ namespace jank {
 		int msr::memncmp(const void *s1, size_t s1_sz, const void *s2, size_t s2_sz) const {
 
 			int n = memcmp(s1, s2, std::min(s1_sz, s2_sz));
-
-			std::cout << "n=" << n << std::endl;
-			std::cout << "s1_sz=" << s1_sz << std::endl;
-			std::cout << "s2_sz=" << s2_sz << std::endl;
 
 			return n ? n : (s1_sz - s2_sz);
 		}
@@ -228,7 +235,7 @@ namespace jank {
 						}
 
 						left -= n;
-						p += n;
+						done += n;
 				}
 
 				return done;
@@ -241,9 +248,9 @@ namespace jank {
 				ss << std::dec << "char s[" << sz << "] = {";
 
 				for(unsigned int n = 0; n < sz; n++)
-						std::cout << ' ' << std::hex << std::setfill('0') << std::setw(2) << (int)s[n];
+						ss << ' ' << std::hex << std::setfill('0') << std::setw(2) << (int)s[n];
 
-				std::cout << " };" << std::endl;
+				ss << " };";
 
 				return ss.str();
 		}

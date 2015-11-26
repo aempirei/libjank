@@ -36,7 +36,11 @@ namespace jank {
 					bool test_ram() const;
 					bool test_sensor() const;
 
-					int model() const;
+					bool has_track1() const;
+					bool has_track2() const;
+					bool has_track3() const;
+
+					char model() const;
 					std::string firmware() const;
 
 					msr();

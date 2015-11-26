@@ -83,10 +83,8 @@ namespace config {
 }
 
 void exit_handler() {
-		config::msr.off();
 		if(config::verbose)
 				std::cout << "[STOP]" << std::endl;
-		config::msr.stop();
 }
 
 void signal_handler(int signo) {
@@ -136,24 +134,10 @@ int main(int argc, char **argv) {
 				std::cout << "[RESET]" << std::endl;
 
 		if(not msr.reset  ()) perror("RESET command failed");
-		if(not msr.green  ()) perror("Green LED On failed" ); msleep(100);
-		if(not msr.yellow ()) perror("Yellow LED On failed"); msleep(100);
-		if(not msr.red    ()) perror("Red LED On failed"   ); msleep(100);
-		if(not msr.on     ()) perror("All LEDs On failed"  ); msleep(100);
-		if(not msr.off    ()) perror("All LEDs Off failed" ); msleep(100);
  
-		if(config::test) {
-
-				std::cout << "/test-mode/" << std::endl;
-
-				std::cout << "comm-test: "   << (msr.test_comm  () ? "PASS" : "FAIL") << std::endl;
-				std::cout << "RAM-test: "    << (msr.test_ram   () ? "PASS" : "FAIL") << std::endl;
-				std::cout << "sensor-test: " << (msr.test_sensor() ? "PASS" : "FAIL") << std::endl;
-		}
-
 		if(config::info) {
 
-				int model = msr.model();
+				char model = msr.model();
 				std::string firmware = msr.firmware();
 
 				std::cout << "/info-mode/" << std::endl;
@@ -168,8 +152,23 @@ int main(int argc, char **argv) {
 						return EXIT_FAILURE;
 				}
 
-				std::cout << "model-info=" << model << std::endl;
-				std::cout << "firmware-info=" << firmware << std::endl;
+				std::cout << "model=" << model << std::endl;
+				std::cout << "firmware=" << firmware << std::endl;
+				std::cout << "tracks=";
+				if(msr.has_track1()) std::cout << '1';
+				if(msr.has_track2()) std::cout << '2';
+				if(msr.has_track3()) std::cout << '3';
+				std::cout << std::endl;
+		}
+
+		if(config::test) {
+
+				std::cout << "/test-mode/" << std::endl;
+
+				std::cout << "comm-test: "   << (msr.test_comm  () ? "PASS" : "FAIL") << std::endl;
+				std::cout << "RAM-test: "    << (msr.test_ram   () ? "PASS" : "FAIL") << std::endl;
+				std::cout << "; slide card for sensor test" << std::endl;
+				std::cout << "sensor-test: " << (msr.test_sensor() ? "PASS" : "FAIL") << std::endl;
 		}
 
 		return EXIT_SUCCESS;
