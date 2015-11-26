@@ -5,276 +5,180 @@
 
 #include <cstring>
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
+
+#include <signal.h>
 
 #include <jank.hh>
 
-#define ESC "\x1b"
-#define msleep(X) usleep((X) * 1000)
-
-void usage(char *);
-
 void printresp(const char *, size_t);
 
-ssize_t readn(int, void *, size_t);
+namespace config {
 
-struct config {
-	bool verbose = false;
-	bool test = false;
-	char *msr_filename = nullptr;
-};
+		bool verbose = false;
+		bool info = false;
+		bool test = false;
+
+		const char *glob = "/dev/ttyUSB*";
+		const char *device = "/dev/ttyUSB0";
+
+		int argc;
+		char **argv;
+
+		jank::msr msr;
+
+		void usage() {
+
+				std::string prog = basename(argv[0]);
+
+				std::cout << std::endl << "usage: " << prog << " [options] -d device" << std::endl << std::endl;
+
+				std::cout << "\t-h          show this help" << std::endl;
+				std::cout << "\t-t          toggle test mode (default=" << (test ? "ENABLED" : "DISABLED") << ")" << std::endl;
+				std::cout << "\t-v          toggle verbose mode (default=" << (verbose ? "ENABLED" : "DISABLED") << ")" << std::endl;
+				std::cout << "\t-i          toggle info mode (default=" << (info ? "ENABLED" : "DISABLED") << ")" << std::endl;
+
+				std::cout << "\t-d device   filename of MSR-605 device";
+
+				if(device != nullptr)
+						std::cout << " (default=" << device << ")";
+
+				std::cout << std::endl;
+
+		}
+
+		void init(int my_argc, char **my_argv) {
+
+				argc = my_argc;
+				argv = my_argv;
+		}
+
+		bool parse() {
+
+				int opt;
+
+				while((opt = getopt(argc, argv, "hvitd:")) != -1) {
+
+						switch(opt) {
+
+								case 'v': verbose = not verbose ; break;
+								case 'i': info    = not info    ; break;
+								case 't': test    = not test    ; break;
+
+								case 'd':
+										  device = optarg;
+										  break;
+
+								case 'h':
+								default:
+										  return false;
+						}
+				}
+
+				return true;
+		}
+}
+
+void exit_handler() {
+		if(config::verbose)
+				std::cout << "[STOP]" << std::endl;
+		config::msr.stop();
+}
+
+void signal_handler(int signo) {
+		if(signo == SIGINT) {
+				signal(signo, SIG_IGN);
+				exit(EXIT_FAILURE);
+		}
+}
 
 int main(int argc, char **argv) {
 
-	jank::msr msr;
+		auto& msr = config::msr;
 
-	config c;
+		config::init(argc, argv);
 
-	char buffer[512];
-	// char *p;
+		atexit(exit_handler);
 
-	int opt;
+		signal(SIGINT, signal_handler);
 
-	ssize_t n;
-	// ssize_t sz;
-
-	while((opt = getopt(argc, argv, "vtd:h")) != -1) {
-		switch(opt) {
-			case 'v':
-				c.verbose = true;
-				break;
-			case 't':
-				c.test = true;
-				break;
-			case 'd':
-				c.msr_filename = optarg;
-				break;
-			case 'h':
-			default:
-				usage(argv[0]);
-				return -1;
-		}
-	}
-
-	if(c.msr_filename == nullptr) {
-		std::cerr << "msr device filename not specified (use -d flag)" << std::endl;
-		return -1;
-	}
-
-	if(c.verbose) {
-		std::cout << "verbose output mode enabled" << std::endl;
-		std::cout << "msr device at " << c.msr_filename << std::endl;
-	}
-
-	if(msr.start(c.msr_filename) == false) {
-		std::cerr << "failed to start device " << c.msr_filename << std::endl;
-		return -1;
-	}
-
-	if(c.verbose)
-		std::cout << "Issuing RESET command" << std::endl;
-
-	if(write(msr.fd, ESC "a", 2) != 2) perror("RESET command failed on write()");
-
-	if(write(msr.fd, ESC "\x83", 2) != 2) perror("Green LED On failed on write()"); msleep(100);
-	if(write(msr.fd, ESC "\x84", 2) != 2) perror("Yellow LED On failed on write()"); msleep(100);
-	if(write(msr.fd, ESC "\x85", 2) != 2) perror("Red LED On failed on write()"); msleep(100);
-	if(write(msr.fd, ESC "\x84", 2) != 2) perror("Yellow LED On failed on write()"); msleep(100);
-	if(write(msr.fd, ESC "\x83", 2) != 2) perror("Green LED On failed on write()"); msleep(100);
-
-	if(write(msr.fd, ESC "\x81", 2) != 2) perror("All LEDs Off failed on write()");
-
-	if(c.test) {
-
-		if(c.verbose)
-			std::cout << "entering test mode" << std::endl;
-
-		//
-		// communication test
-		//
-
-#define TEST_BUFFER(S, SN, T, TN) (SN == TN and memcmp(S, T, TN) == 0)
-
-		if(c.verbose)
-			std::cout << "Performing communication test" << std::endl;
-
-		if(write(msr.fd, ESC "e", 2) != 2) {
-			perror("Communication test failed on write()");
-			return -1;
+		if(not config::parse()) {
+				config::usage();
+				return EXIT_FAILURE;
 		}
 
-		n = readn(msr.fd, buffer, 2);
-		if(n == -1) {
-			perror("Communication test failed on readn()");
-			return -1;
+		if(config::device == nullptr) {
+				std::cerr << "msr device filename not specified (use -d flag)" << std::endl;
+				return EXIT_FAILURE;
 		}
 
-		std::cout << "Communication test " << (TEST_BUFFER(buffer, n, ESC "y", 2) ? "passed" : "failed") << '.' << std::endl;
-		if(c.verbose)
-			printresp(buffer, n);
-
-		//
-		// RAM test
-		//
-
-		if(c.verbose)
-			std::cout << "Performing RAM test" << std::endl;
-
-		if(write(msr.fd, ESC "\x87", 2) != 2) {
-			perror("RAM test failed on write()");
-			return -1;
+		if(config::verbose) {
+				std::cout << "verbose=" << ( config::verbose ? "ENABLED" : "DISABLED" ) << std::endl;
+				std::cout << "test=" << ( config::test ? "ENABLED" : "DISABLED" ) << std::endl;
+				std::cout << "info=" << ( config::info ? "ENABLED" : "DISABLED" ) << std::endl;
+				std::cout << "glob=" << config::glob << std::endl;
+				std::cout << "device=" << config::device << std::endl;
 		}
 
-		n = readn(msr.fd, buffer, 2);
-		if(n == -1) {
-			perror("RAM test failed on readn()");
-			return -1;
+		if(config::verbose)
+				std::cout << "[START]" << std::endl;
+
+		if(msr.start(config::device) == false) {
+				std::cerr << "failed to start device " << config::device << std::endl;
+				return EXIT_FAILURE;
 		}
 
-		std::cout << "RAM test " << (TEST_BUFFER(buffer, n, ESC "0", 2) ? "passed" : "failed") << '.' << std::endl;
-		if(c.verbose)
-			printresp(buffer, n);
+		if(config::verbose)
+				std::cout << "[RESET]" << std::endl;
 
-		//
-		// get device model
-		//
+		if(not msr.reset  ()) perror("RESET command failed");
+		if(not msr.green  ()) perror("Green LED On failed" ); msleep(100);
+		if(not msr.yellow ()) perror("Yellow LED On failed"); msleep(100);
+		if(not msr.red    ()) perror("Red LED On failed"   ); msleep(100);
+		if(not msr.on     ()) perror("All LEDs On failed"  ); msleep(100);
+		if(not msr.off    ()) perror("All LEDs Off failed" ); msleep(100);
+ 
+		if(config::test) {
 
-		if(c.verbose)
-			std::cout << "Getting device model" << std::endl;
+				std::cout << "/test-mode/" << std::endl;
 
-		if(write(msr.fd, ESC "t", 2) != 2) {
-			perror("Get device model failed on write()");
-			return -1;
+				std::cout << "comm-test: "   << (msr.test_comm  () ? "PASS" : "FAIL") << std::endl;
+				std::cout << "RAM-test: "    << (msr.test_ram   () ? "PASS" : "FAIL") << std::endl;
+				std::cout << "sensor-test: " << (msr.test_sensor() ? "PASS" : "FAIL") << std::endl;
 		}
 
-		n = readn(msr.fd, buffer, 3);
-		if(n == -1) {
-			perror("Get device model failed on readn()");
-			return -1;
+		if(config::info) {
+
+				int model = msr.model();
+				std::string firmware = msr.firmware();
+
+				std::cout << "/info-mode/" << std::endl;
+
+				if(model == '\0') {
+						perror("msr::model()");
+						return EXIT_FAILURE;
+				}
+
+				if(firmware.empty()) {
+						perror("msr::firmware()");
+						return EXIT_FAILURE;
+				}
+
+				std::cout << "model-info=" << model << std::endl;
+				std::cout << "firmware-info=" << firmware << std::endl;
 		}
 
-		std::cout << "model " << (char)buffer[1] << std::endl;
-
-		/*
-
-		   memset(buffer, 0, sizeof(buffer));
-		   p = buffer;
-		   sz = 0;
-
-		   do { 
-		   n = read(msr.fd, p, sizeof(buffer) - sz);
-		   if(n == -1) {
-		   perror("Get device model failed on read()");
-		   return -1;
-		   }
-		   p += n;
-		   sz += n;
-		   } while(not (sz > 0 and buffer[0] == '\x1b' and buffer[sz - 1] == 'S'));
-
-		   if(c.verbose)
-		   printresp(buffer, sz);
-		 */
-
-		if(c.verbose)
-			printresp(buffer, n);
-
-		//
-		// get firmware version
-		//
-
-		if(c.verbose)
-			std::cout << "Getting firmware version" << std::endl;
-
-		if(write(msr.fd, ESC "v", 2) != 2) {
-			perror("Get firmware version failed on write()");
-			return -1;
-		}
-
-		buffer[9] = '\0';
-
-		n = readn(msr.fd, buffer, 9);
-		if(n == -1) {
-			perror("Get firmware version failed on readn()");
-			return -1;
-		}
-
-		std::cout << "firmware " << (buffer + 1) << std::endl;
-
-		if(c.verbose)
-			printresp(buffer, n);
-
-		//
-		// sensor test
-		//
-
-		if(c.verbose)
-			std::cout << "Performing sensor test" << std::endl;
-
-		if(write(msr.fd, ESC "\x86", 2) != 2) {
-			perror("Sensor test failed on write()");
-			return -1;
-		}
-
-		std::cout << "Please swipe a card." << std::endl;
-
-		n = readn(msr.fd, buffer, 2);
-		if(n == -1) {
-			perror("Sensor test failed on readn()");
-			return -1;
-		}
-
-		std::cout << "Sensor test " << (TEST_BUFFER(buffer, n, ESC "0", 2) ? "passed" : "failed") << '.' << std::endl;
-		if(c.verbose)
-			printresp(buffer, n);
-	}
-
-
-	msr.stop();
-
-	if(c.verbose)
-		std::cout << "goodbye." << std::endl;
-
-	return 0;
-}
-
-ssize_t readn(int fd, void *buffer, size_t left) {
-
-	char *p = (char *)buffer;
-	size_t done = 0;
-	ssize_t n;
-
-	while(left > 0) {
-		n = read(fd, p, left);
-
-		if(n == -1) {
-			if(errno == EINTR)
-				continue;
-			return -1;
-		}
-
-		left -= n;
-		p += n;
-		done += n;
-	}
-
-	return done;
+		return EXIT_SUCCESS;
 }
 
 void printresp(const char *resp, size_t resp_sz) {
 
-	std::cout << std::dec << resp_sz << " bytes:";
+		std::cout << std::dec << resp_sz << " bytes:";
 
-	for(unsigned int i = 0; i < resp_sz; i++)
-		std::cout << ' ' << std::hex << std::setfill('0') << std::setw(2) << (int)resp[i];
+		for(unsigned int i = 0; i < resp_sz; i++)
+				std::cout << ' ' << std::hex << std::setfill('0') << std::setw(2) << (int)resp[i];
 
-	std::cout << std::endl;
-}
-
-void usage(char *arg0) {
-	std::cout << std::endl << "usage: " << arg0 << " [options] -d device" << std::endl << std::endl;
-	std::cout << "\t-t          test mode" << std::endl;
-	std::cout << "\t-v          verbose output" << std::endl;
-	std::cout << "\t-h          show this help" << std::endl;
-	std::cout << "\t-d device   filename of MSR-605 device" << std::endl;
-	std::cout << std::endl;
+		std::cout << std::endl;
 }
