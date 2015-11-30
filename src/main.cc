@@ -177,19 +177,33 @@ int main(int argc, char **argv) {
 		}
 
 		if(config::cli) {
+
 				std::string prompt = msr.firmware() + "> ";
+
 				char *line;
 
-				std::cout << "/cli-mode/" << std::endl;
+                std::cout << "/cli-mode/" << std::endl;
 
-				do {	
+                while((line = readline(prompt.c_str())) != nullptr) {
 
-						line = readline(prompt.c_str());
+                    if(strcasecmp(line, "erase") == 0) {
+                        std::cout << "/batch-erase/ ; press ctrl-c to stop" << std::endl;
+                        for(;;) {
+                            if(config::verbose)
+                                std::cout << "[ERASE]" << std::endl;
+                            msr.erase();
+                            msleep(250);
+                        }
+                    } else if(strcasecmp(line, "reset") == 0) {
+                        if(config::verbose)
+                            std::cout << "[RESET]" << std::endl;
+                        msr.reset();
+                    }
 
-						free(line);
+                    free(line);
 
-				} while(line != nullptr);
-		}
+                }
+        }
 
 		return EXIT_SUCCESS;
 }
