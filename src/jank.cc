@@ -314,6 +314,8 @@ namespace jank {
 			done += n;
 		}
 
+		std::cout << hex((char *)buf, done) << std::endl;
+
 		return done;
 	}
 
