@@ -8,6 +8,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/select.h>
 
 #include <jank.hh>
 
@@ -25,7 +26,7 @@ namespace jank {
 		}
 	}
 
-	bool msr::start(const char *my_device) {
+	bool msr::start(const char *my_device, int my_oob_fd, int my_msg_fd) {
 
 		termios options;
 
@@ -36,11 +37,14 @@ namespace jank {
 
 		device = my_device;
 
-		fd = open(device.c_str(), O_RDWR | O_NOCTTY);
-		if(fd == -1)
+		oob_fd = my_oob_fd;
+		msg_fd = my_msg_fd;
+
+		msr_fd = open(device.c_str(), O_RDWR | O_NOCTTY);
+		if(msr_fd == -1)
 			return false;
 
-		tcgetattr(fd, &options);
+		tcgetattr(msr_fd, &options);
 
 		cfsetispeed(&options, B9600);
 		cfsetospeed(&options, B9600);
@@ -59,9 +63,9 @@ namespace jank {
 
 		options.c_oflag &= ~OPOST;
 
-		if(tcsetattr(fd, TCSANOW, &options) == -1) {
+		if(tcsetattr(msr_fd, TCSANOW, &options) == -1) {
 			int e = errno;
-			close(fd);
+			close(msr_fd);
 			errno = e;
 			return false;
 		}
@@ -71,14 +75,54 @@ namespace jank {
 		return true;
 	}
 
-	bool  msr::stop() {
+	bool msr::sync() {
+
+		struct timeval tv = { sync_timeout, 0 };
+
+		fd_set rfds;
+
+		FD_ZERO(&rfds);
+
+		FD_SET(msr_fd, &rfds);
+		FD_SET(oob_fd, &rfds);
+
+		if(select(std::max(msr_fd, oob_fd) + 1, &rfds, nullptr, nullptr, &tv) == -1)
+			return errno == EINTR;
+
+		if(FD_ISSET(msr_fd, &rfds))
+			update(msr_fd, msr_buffer);
+
+		if(FD_ISSET(oob_fd, &rfds)) 
+			update(oob_fd, oob_buffer);
+
+		return true;
+	}
+
+	bool msr::update(int fd, buffer_type& buffer) {
+
+		char read_block[read_block_sz];
+
+		ssize_t n;
+
+		n = read(fd, read_block, sizeof(read_block));
+
+		if(n == -1)
+			return errno == EINTR;
+
+		for(ssize_t i = 0; i < n; i++)
+			buffer.push_back(read_block[i]);
+
+		return true;
+	}
+
+	bool msr::stop() {
 
 		if(not active) {
 			errno = ENOMEDIUM;
 			return false;
 		}
 
-		close(fd);
+		close(msr_fd);
 		active = false;
 
 		return true;
@@ -125,10 +169,8 @@ namespace jank {
 	}
 
 	bool msr::erase(bool t1, bool t2, bool t3) const {
-		char cmd[] = { 033, 'c', 0 };
-		cmd[2] = (t1 ? 1 : 0) | (t2 ? 2 : 0) | (t3 ? 4 : 0);
-		if(cmd[2] == 1)
-			cmd[2] = 0;
+		char tracks = (t1 ? 1 : 0) | (t2 ? 2 : 0) | (t3 ? 4 : 0);
+		char cmd[] = { '\033', 'c', tracks == 1 ? '\0' : tracks };
 		return expect(cmd, 3, ESC "0", 2);
 	}
 
@@ -230,7 +272,7 @@ namespace jank {
 
 		while(left > 0) {
 
-			n = write(fd, p + done, left);
+			n = write(msr_fd, p + done, left);
 
 			if(n == -1) {
 				if(errno == EINTR)
@@ -260,7 +302,7 @@ namespace jank {
 
 		while(left > 0) {
 
-			n = read(fd, p + done, left);
+			n = read(msr_fd, p + done, left);
 
 			if(n == -1) {
 				if(errno == EINTR)

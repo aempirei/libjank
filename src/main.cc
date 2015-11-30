@@ -19,7 +19,7 @@
 
 namespace config {
 
-		bool verbose = false;
+		bool verbose = true;
 		bool info = false;
 		bool test = false;
 		bool cli = false;
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
 		if(config::verbose)
 				std::cout << "[START]" << std::endl;
 
-		if(msr.start(config::device) == false) {
+		if(msr.start(config::device, STDIN_FILENO, STDOUT_FILENO) == false) {
 				std::cerr << "failed to start device " << config::device << std::endl;
 				return EXIT_FAILURE;
 		}
