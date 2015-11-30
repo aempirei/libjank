@@ -87,6 +87,9 @@ namespace config {
 		}
 }
 
+volatile sig_atomic_t batch_mode = false;
+volatile sig_atomic_t done = false;
+
 void signal_handler(int);
 void exit_handler();
 
@@ -167,56 +170,78 @@ int main(int argc, char **argv) {
 
 		if(config::test) {
 
-				std::cout << "/test-mode/" << std::endl;
+			std::cout << "/test-mode/" << std::endl;
 
-				std::cout << "; slide card for sensor test" << std::endl;
+			std::cout << "; slide card for sensor test" << std::endl;
 
-				std::cout << "sensor-test: " << (msr.test_sensor() ? "PASS" : "FAIL") << std::endl;
-				std::cout << "comm-test: "   << (msr.test_comm  () ? "PASS" : "FAIL") << std::endl;
-				std::cout << "RAM-test: "    << (msr.test_ram   () ? "PASS" : "FAIL") << std::endl;
+			std::cout << "sensor-test: " << (msr.test_sensor() ? "PASS" : "FAIL") << std::endl;
+			std::cout << "comm-test: "   << (msr.test_comm  () ? "PASS" : "FAIL") << std::endl;
+			std::cout << "RAM-test: "    << (msr.test_ram   () ? "PASS" : "FAIL") << std::endl;
 		}
 
 		if(config::cli) {
 
-				std::string prompt = msr.firmware() + "> ";
+			std::string prompt = msr.firmware() + "> ";
 
-				char *line;
+			char *line;
 
-                std::cout << "/cli-mode/" << std::endl;
+			std::cout << "/cli-mode/" << std::endl;
 
-                while((line = readline(prompt.c_str())) != nullptr) {
+			while(not done and (line = readline(prompt.c_str())) != nullptr) {
 
-                    if(strcasecmp(line, "erase") == 0) {
-                        std::cout << "/batch-erase/ ; press ctrl-c to stop" << std::endl;
-                        for(;;) {
-                            if(config::verbose)
-                                std::cout << "[ERASE]" << std::endl;
-                            msr.erase();
-                            msleep(250);
-                        }
-                    } else if(strcasecmp(line, "reset") == 0) {
-                        if(config::verbose)
-                            std::cout << "[RESET]" << std::endl;
-                        msr.reset();
-                    }
+				if(strcasecmp(line, "erase") == 0) {
 
-                    free(line);
+					std::cout << "/batch-erase/ ; press ctrl-c to stop" << std::endl;
 
-                }
-        }
+					batch_mode = true;
+
+					while(batch_mode) {
+
+						if(config::verbose)
+							std::cout << "[ERASE]" << std::endl;
+
+						msr.erase();
+
+						msleep(250);
+					}
+
+					if(config::verbose)
+						std::cout << "[RESET]" << std::endl;
+
+					msr.reset();
+
+				} else if(strcasecmp(line, "reset") == 0) {
+
+					if(config::verbose)
+						std::cout << "[RESET]" << std::endl;
+
+					msr.reset();
+
+				} else if(strcasecmp(line, "quit") == 0) {
+
+					done = true;
+				}
+
+				free(line);
+			}
+		}
 
 		return EXIT_SUCCESS;
 }
 
 void exit_handler() {
-		putchar('\n');
-		if(config::verbose)
-				std::cout << "[STOP]" << std::endl;
+	putchar('\n');
+	if(config::verbose)
+		std::cout << "[QUIT]" << std::endl;
 }
 
 void signal_handler(int signo) {
-		if(signo == SIGINT) {
-				signal(signo, SIG_IGN);
-				exit(EXIT_FAILURE);
+	if(signo == SIGINT) {
+		if(batch_mode) {
+			batch_mode = false;
+		} else {
+			signal(signo, SIG_IGN);
+			exit(EXIT_FAILURE);
 		}
+	}
 }
