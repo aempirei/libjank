@@ -120,6 +120,18 @@ namespace jank {
 				return expect(ESC "\x86", 2, ESC "0", 2);
 		}
 
+        bool msr::erase() const {
+            return erase(true,true,true);
+        }
+
+        bool msr::erase(bool t1, bool t2, bool t3) const {
+            char cmd[] = { 033, 'c', 0 };
+            cmd[2] = (t1 ? 1 : 0) | (t2 ? 2 : 0) | (t3 ? 4 : 0);
+            if(cmd[2] == 1)
+                cmd[2] = 0;
+            return expect(cmd, 3, ESC "0", 2);
+        }
+
 		bool msr::has_track1() const {
 				char m = model();
 				return m == '3' or m == '5';

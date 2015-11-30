@@ -30,6 +30,8 @@ namespace jank {
 					bool green() const;
 					bool on() const;
 					bool off() const;
+                    bool erase(bool,bool,bool) const;
+                    bool erase() const;
 
 					bool test_comm() const;
 					bool test_ram() const;
