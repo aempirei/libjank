@@ -72,9 +72,9 @@ namespace jank {
 			constexpr static long sync_timeout = 5;
 			constexpr static size_t read_block_sz = 1024;
 
-			constexpr static pattern_type<2> response_ok = { '\033', '0' };
-			constexpr static pattern_type<2> response_fail = { '\033', 'A' };
-			constexpr static pattern_type<2> response_ack = { '\033', 'y' };
+			constexpr static pattern_type<2> response_ok = { { '\033', '0' } };
+			constexpr static pattern_type<2> response_fail = { { '\033', 'A' } };
+			constexpr static pattern_type<2> response_ack = { { '\033', 'y' } };
 
 			bool expect(const void *, size_t, const void *, size_t) const;
 
