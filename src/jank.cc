@@ -12,13 +12,13 @@
 
 #include <jank.hh>
 
-#define ESC "\033"
+#define ESC "\33"
 
 namespace jank {
 
-	const msr::pattern_type<2> msr::response_ok = { { '\033', '0' } };
-	const msr::pattern_type<2> msr::response_fail = { { '\033', 'A' } };
-	const msr::pattern_type<2> msr::response_ack = { { '\033', 'y' } };
+	const msr::pattern_type<2> msr::response_ok = { { '\33', '0' } };
+	const msr::pattern_type<2> msr::response_fail = { { '\33', 'A' } };
+	const msr::pattern_type<2> msr::response_ack = { { '\33', 'y' } };
 
 	msr::msr() : active(false), sync_timeout(30) {
 	}
@@ -226,7 +226,7 @@ namespace jank {
 	bool msr::erase(bool t1, bool t2, bool t3) {
 
 		const char tracks = (t1 ? 1 : 0) | (t2 ? 2 : 0) | (t3 ? 4 : 0);
-		const char cmd[] = { '\033', 'c', tracks == 1 ? '\0' : tracks };
+		const char cmd[] = { '\33', 'c', tracks == 1 ? '\0' : tracks };
 		const char msg[] = "[ERASE]\n";
 
 		write(msg_fd, msg, strlen(msg));
@@ -260,7 +260,7 @@ namespace jank {
 
 	bool msr::read() {
 
-		const char cmd[] = { '\033', 'r' };
+		const char cmd[] = { '\33', 'r' };
 		const char msg[] = "[READ]\n";
 
 		write(msg_fd, msg, strlen(msg));
@@ -270,12 +270,67 @@ namespace jank {
 
 		while(sync() and not cancel()) {
 
+			/*
+
 			std::cout << "buffer = {";
 
 			for(auto ch : msr_buffer)
 				std::cout << ' ' << std::hex << std::setw(2) << std::setfill('0') << (int)ch;
 
 			std::cout << " }" << std::endl;
+
+			*/
+
+			auto iter = msr_buffer.cbegin();
+
+			std::string track1;
+			std::string track2;
+			std::string track3;
+
+			if(iter == msr_buffer.end()) continue; if(*iter++ != '\33') { errno = EPROTO; break; }
+			if(iter == msr_buffer.end()) continue; if(*iter++ != 's') { errno = EPROTO; break; }
+			if(iter == msr_buffer.end()) continue; if(*iter++ != '\33') { errno = EPROTO; break; }
+			if(iter == msr_buffer.end()) continue; if(*iter++ != '\1') { errno = EPROTO; break; }
+
+			while(iter != msr_buffer.end() and *iter != '\33')
+				track1.push_back(*iter++);
+
+			if(iter == msr_buffer.end()) continue; if(*iter++ != '\33') { errno = EPROTO; break; }
+			if(iter == msr_buffer.end()) continue; if(*iter++ != '\2') { errno = EPROTO; break; }
+
+			while(iter != msr_buffer.end() and *iter != '\33')
+				track2.push_back(*iter++);
+
+			if(iter == msr_buffer.end()) continue; if(*iter++ != '\33') { errno = EPROTO; break; }
+			if(iter == msr_buffer.end()) continue; if(*iter++ != '\3') { errno = EPROTO; break; }
+
+			while(iter != msr_buffer.end() and *iter != '\34')
+				track3.push_back(*iter++);
+
+			if(iter == msr_buffer.end()) continue; if(*iter++ != '\34') { errno = EPROTO; break; }
+			if(iter == msr_buffer.end()) continue; if(*iter++ != '\33') { errno = EPROTO; break; }
+			if(iter == msr_buffer.end()) continue; if(*iter < '0' or *iter > '?') { errno = EPROTO; break; }
+
+			char status = *iter++;
+
+			while(msr_buffer.begin() != iter)
+				msr_buffer.pop_front();
+
+			std::cout << "track1=" << track1 << std::endl;
+			std::cout << "track2=" << track2 << std::endl;
+			std::cout << "track3=" << track3 << std::endl;
+
+			if(status == '0')
+				return true;
+
+			if(status == '1')
+				errno = EIO;
+
+			if(status == '2')
+				errno = EINVAL;
+
+			if(status == '4')
+				errno = ENOTSUP;
 		}
 
 		int e = errno;
@@ -314,7 +369,7 @@ namespace jank {
 		if(n == -1)
 			return -1;
 
-		if(buf[0] != '\033' or buf[2] != 'S') {
+		if(buf[0] != '\33' or buf[2] != 'S') {
 			errno = EPROTO;
 			return -1;
 		}
