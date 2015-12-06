@@ -80,5 +80,7 @@ namespace jank {
 			int memncmp(const void *, size_t, const void *, size_t) const;
 
 			std::string hex(const char *, size_t) const;
+
+			template <class T, class U> bool begins_with(const T&, const U&) const;
 	};
 }

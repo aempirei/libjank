@@ -14,8 +14,6 @@
 
 #define ESC "\033"
 
-#define nop(...)
-
 namespace jank {
 
 	const msr::pattern_type<2> msr::response_ok = { { '\033', '0' } };
@@ -197,6 +195,17 @@ namespace jank {
 		return erase(true,true,true);
 	}
 
+	template <class T, class U> bool msr::begins_with(const T& a, const U& b) const {
+
+		auto iter = a.cbegin();
+		auto jter = b.cbegin();
+
+		while(iter != a.end() and jter != b.end() and *iter++ == *jter++)
+			void();
+
+		return jter == b.end();
+	}
+
 	bool msr::erase(bool t1, bool t2, bool t3) {
 
 		char tracks = (t1 ? 1 : 0) | (t2 ? 2 : 0) | (t3 ? 4 : 0);
@@ -215,13 +224,17 @@ namespace jank {
 				}
 			}
 
-			auto xter = response_ok.begin();
-			auto yter = msr_buffer.begin();
+			if(begins_with(msr_buffer, response_ok)) {
+				for(size_t i = 0; i < response_ok.size(); i++)
+					msr_buffer.pop_front();
+				return true;
+			}
 
-			while(xter != response_ok.end() and yter != msr_buffer.end() and *xter == *yter)
-				nop();
-
-			(void)1;
+			if(begins_with(msr_buffer, response_fail))
+				for(size_t i = 0; i < response_fail.size(); i++)
+					msr_buffer.pop_front();
+				errno = EREMOTE; 
+				return false;
 		}
 
 		return false;
