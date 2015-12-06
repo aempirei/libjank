@@ -311,17 +311,12 @@ namespace jank {
 			std::cout << "track2=" << track2 << std::endl;
 			std::cout << "track3=" << track3 << std::endl;
 
-			if(status == '0')
-				return true;
-
-			if(status == '1')
-				errno = EIO;
-
-			if(status == '2')
-				errno = EINVAL;
-
-			if(status == '4')
-				errno = ENOTSUP;
+			switch(status) {
+				case '0': return true;
+				case '1': errno = EIO; break;
+				case '2': errno = EINVAL; break;
+				case '4': errno = ENOTSUP; break;
+			}
 		}
 
 		int e = errno;
