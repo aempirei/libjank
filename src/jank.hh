@@ -43,6 +43,9 @@ namespace jank {
 			bool off() const;
 			bool erase(bool,bool,bool);
 			bool erase();
+			bool read();
+
+			bool cancel();
 
 			bool test_comm() const;
 			bool test_ram() const;

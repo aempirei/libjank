@@ -118,7 +118,7 @@ namespace jank {
 
 		ssize_t n;
 
-		n = read(fd, read_block, sizeof(read_block));
+		n = ::read(fd, read_block, sizeof(read_block));
 		if(n == -1)
 			return errno == EINTR;
 
@@ -212,6 +212,17 @@ namespace jank {
 		return erase(true,true,true);
 	}
 
+	bool msr::cancel() {
+			if(not oob_buffer.empty()) {
+				if(oob_buffer.back() == '\n') {
+					errno = ECANCELED;
+					return true;
+				}
+			}
+
+			return false;
+	}
+
 	bool msr::erase(bool t1, bool t2, bool t3) {
 
 		const char tracks = (t1 ? 1 : 0) | (t2 ? 2 : 0) | (t3 ? 4 : 0);
@@ -223,14 +234,7 @@ namespace jank {
 		if(writen(cmd, sizeof(cmd)) != sizeof(cmd))
 			return false;
 
-		while(sync()) {
-
-			if(not oob_buffer.empty()) {
-				if(oob_buffer.back() == '\n') {
-					errno = ECANCELED;
-					break;
-				}
-			}
+		while(sync() and not cancel()) {
 
 			if(begins_with(msr_buffer, response_ok)) {
 				for(size_t i = 0; i < response_ok.size(); i++)
@@ -244,6 +248,34 @@ namespace jank {
 				errno = EIO; 
 				return false;
 			}
+		}
+
+		int e = errno;
+
+		if(reset() and flush())
+			errno = e;
+
+		return false;
+	}
+
+	bool msr::read() {
+
+		const char cmd[] = { '\033', 'r' };
+		const char msg[] = "[READ]\n";
+
+		write(msg_fd, msg, strlen(msg));
+
+		if(writen(cmd, sizeof(cmd)) != sizeof(cmd))
+			return false;
+
+		while(sync() and not cancel()) {
+
+			std::cout << "buffer = {";
+
+			for(auto ch : msr_buffer)
+				std::cout << ' ' << std::hex << std::setw(2) << std::setfill('0') << (int)ch;
+
+			std::cout << " }" << std::endl;
 		}
 
 		int e = errno;
@@ -383,7 +415,7 @@ namespace jank {
 
 		while(left > 0) {
 
-			n = read(msr_fd, p + done, left);
+			n = ::read(msr_fd, p + done, left);
 
 			if(n == -1) {
 				if(errno == EINTR)

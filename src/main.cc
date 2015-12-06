@@ -213,6 +213,19 @@ int main(int argc, char **argv) {
 
 				perror("ERASE");
 
+			} else if(strcasecmp(line, "READ") == 0) {
+
+				int n = 0;
+
+				std::cout << "/batch-read/" << std::endl;
+
+				do {
+					msleep(500);
+					std::cout << "[" << ++n << "] swipe card or press <ENTER> to stop." << std::endl;
+				} while(msr.read());
+
+				perror("READ");
+
 			} else if(strcasecmp(line, "RESET") == 0) {
 
 				msr.reset();
