@@ -20,7 +20,7 @@
 
 namespace config {
 
-	bool verbose = true;
+	bool verbose = false;
 	bool info = false;
 	bool test = false;
 	bool cli = false;
@@ -50,6 +50,8 @@ namespace config {
 
 		if(device != nullptr)
 			std::cout << " (default=" << device << ")";
+
+		std::cout << std::endl;
 
 		std::cout << std::endl;
 
@@ -224,14 +226,12 @@ int main(int argc, char **argv) {
 }
 
 void exit_handler() {
-	putchar('\n');
-	if(config::verbose)
-		std::cout << "[QUIT]" << std::endl;
 }
 
 void signal_handler(int signo) {
 	if(signo == SIGINT) {
 		signal(signo, SIG_IGN);
+		putchar('\n');
 		exit(EXIT_FAILURE);
 	}
 }

@@ -20,7 +20,7 @@ namespace jank {
 	const msr::pattern_type<2> msr::response_fail = { { '\033', 'A' } };
 	const msr::pattern_type<2> msr::response_ack = { { '\033', 'y' } };
 
-	msr::msr() : active(false), sync_timeout(5) {
+	msr::msr() : active(false), sync_timeout(30) {
 	}
 
 	msr::~msr() {
@@ -130,10 +130,14 @@ namespace jank {
 
 	bool msr::stop() {
 
+		const char msg[] = "[STOP]\n";
+
 		if(not active) {
 			errno = ENOMEDIUM;
 			return false;
 		}
+
+		write(msg_fd, msg, strlen(msg));
 
 		close(msr_fd);
 		active = false;
@@ -223,9 +227,8 @@ namespace jank {
 
 			if(not oob_buffer.empty()) {
 				if(oob_buffer.back() == '\n') {
-					if(reset() and flush())
-						errno = ECANCELED;
-					return false;
+					errno = ECANCELED;
+					break;
 				}
 			}
 
@@ -235,12 +238,18 @@ namespace jank {
 				return true;
 			}
 
-			if(begins_with(msr_buffer, response_fail))
+			if(begins_with(msr_buffer, response_fail)) {
 				for(size_t i = 0; i < response_fail.size(); i++)
 					msr_buffer.pop_front();
-				errno = EREMOTE; 
+				errno = EIO; 
 				return false;
+			}
 		}
+
+		int e = errno;
+
+		if(reset() and flush())
+			errno = e;
 
 		return false;
 	}
