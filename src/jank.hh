@@ -19,29 +19,20 @@ namespace jank {
 
 			using buffer_type = std::list<char>;
 
-			using parsing_function_type = bool (buffer_type&, std::list<std::string>&);
-
 			template <size_t N> using pattern_type = std::array<int,N>;
 
-			template <size_t N> parsing_function_type *basic_parser(pattern_type<N>&);
-
-			parsing_function_type *multi_expect(const std::list<parsing_function_type *>&, buffer_type&, std::list<std::string>&);
-
-			std::string device;
 			bool active;
 
-			int msr_fd;
-			int oob_fd;
-			int msg_fd;
+			std::string device;
 
-			buffer_type msr_buffer;
-			buffer_type oob_buffer;
+			long sync_timeout;
 
 			bool start(const char *, int, int);
 			bool stop();
 
 			bool sync();
 			bool update(int, buffer_type&);
+			bool flush();
 
 			bool reset() const;
 
@@ -50,8 +41,8 @@ namespace jank {
 			bool green() const;
 			bool on() const;
 			bool off() const;
-			bool erase(bool,bool,bool) const;
-			bool erase() const;
+			bool erase(bool,bool,bool);
+			bool erase();
 
 			bool test_comm() const;
 			bool test_ram() const;
@@ -69,12 +60,18 @@ namespace jank {
 
 		private:
 
-			constexpr static long sync_timeout = 5;
+			int msr_fd;
+			int oob_fd;
+			int msg_fd;
+
+			buffer_type msr_buffer;
+			buffer_type oob_buffer;
+
 			constexpr static size_t read_block_sz = 1024;
 
-			constexpr static pattern_type<2> response_ok = { { '\033', '0' } };
-			constexpr static pattern_type<2> response_fail = { { '\033', 'A' } };
-			constexpr static pattern_type<2> response_ack = { { '\033', 'y' } };
+			const static pattern_type<2> response_ok;
+			const static pattern_type<2> response_fail;
+			const static pattern_type<2> response_ack;
 
 			bool expect(const void *, size_t, const void *, size_t) const;
 

@@ -14,9 +14,15 @@
 
 #define ESC "\033"
 
+#define nop(...)
+
 namespace jank {
 
-	msr::msr() : active(false) {
+	const msr::pattern_type<2> msr::response_ok = { { '\033', '0' } };
+	const msr::pattern_type<2> msr::response_fail = { { '\033', 'A' } };
+	const msr::pattern_type<2> msr::response_ack = { { '\033', 'y' } };
+
+	msr::msr() : active(false), sync_timeout(5) {
 	}
 
 	msr::~msr() {
@@ -31,7 +37,7 @@ namespace jank {
 		termios options;
 
 		if(active) {
-			errno = ENOMEDIUM;
+			errno = EALREADY;
 			return false;
 		}
 
@@ -79,6 +85,8 @@ namespace jank {
 
 		struct timeval tv = { sync_timeout, 0 };
 
+		int n;
+
 		fd_set rfds;
 
 		FD_ZERO(&rfds);
@@ -86,14 +94,22 @@ namespace jank {
 		FD_SET(msr_fd, &rfds);
 		FD_SET(oob_fd, &rfds);
 
-		if(select(std::max(msr_fd, oob_fd) + 1, &rfds, nullptr, nullptr, &tv) == -1)
+		n = select(std::max(msr_fd, oob_fd) + 1, &rfds, nullptr, nullptr, &tv);
+		if(n == -1)
 			return errno == EINTR;
 
+		if(n == 0) {
+			errno = ETIME;
+			return false;
+		}
+
 		if(FD_ISSET(msr_fd, &rfds))
-			update(msr_fd, msr_buffer);
+			if(not update(msr_fd, msr_buffer))
+				return false;
 
 		if(FD_ISSET(oob_fd, &rfds)) 
-			update(oob_fd, oob_buffer);
+			if(not update(oob_fd, oob_buffer))
+				return false;
 
 		return true;
 	}
@@ -105,7 +121,6 @@ namespace jank {
 		ssize_t n;
 
 		n = read(fd, read_block, sizeof(read_block));
-
 		if(n == -1)
 			return errno == EINTR;
 
@@ -124,6 +139,20 @@ namespace jank {
 
 		close(msr_fd);
 		active = false;
+
+		return true;
+	}
+
+	bool msr::flush() {
+
+		oob_buffer.clear();
+		msr_buffer.clear();
+
+		if(tcflush(oob_fd, TCIFLUSH) == -1)
+			return false;
+
+		if(tcflush(msr_fd, TCIOFLUSH) == -1)
+			return false;
 
 		return true;
 	}
@@ -164,14 +193,38 @@ namespace jank {
 		return expect(ESC "\x86", 2, ESC "0", 2);
 	}
 
-	bool msr::erase() const {
+	bool msr::erase() {
 		return erase(true,true,true);
 	}
 
-	bool msr::erase(bool t1, bool t2, bool t3) const {
+	bool msr::erase(bool t1, bool t2, bool t3) {
+
 		char tracks = (t1 ? 1 : 0) | (t2 ? 2 : 0) | (t3 ? 4 : 0);
 		char cmd[] = { '\033', 'c', tracks == 1 ? '\0' : tracks };
-		return expect(cmd, 3, ESC "0", 2);
+
+		if(writen(cmd, sizeof(cmd)) != sizeof(cmd))
+			return false;
+
+		while(sync()) {
+
+			if(not oob_buffer.empty()) {
+				if(oob_buffer.back() == '\n') {
+					if(reset() and flush())
+						errno = ECANCELED;
+					return false;
+				}
+			}
+
+			auto xter = response_ok.begin();
+			auto yter = msr_buffer.begin();
+
+			while(xter != response_ok.end() and yter != msr_buffer.end() and *xter == *yter)
+				nop();
+
+			(void)1;
+		}
+
+		return false;
 	}
 
 	bool msr::has_track1() const {
@@ -180,7 +233,8 @@ namespace jank {
 	}
 
 	bool msr::has_track2() const {
-		return true;
+		char m = model();
+		return m != -1;
 	}
 
 	bool msr::has_track3() const {
@@ -195,15 +249,15 @@ namespace jank {
 		ssize_t n;
 
 		if(writen(ESC "t", 2) != 2)
-			return 0;
+			return -1;
 
 		n = readn(buf, buf_sz);
 		if(n == -1)
-			return 0;
+			return -1;
 
 		if(buf[0] != '\033' or buf[2] != 'S') {
-			errno = ENOMEDIUM;
-			return 0;
+			errno = EPROTO;
+			return -1;
 		}
 
 		return buf[1];
