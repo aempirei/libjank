@@ -250,6 +250,8 @@ namespace jank {
 			}
 		}
 
+		msleep(250);
+
 		int e = errno;
 
 		if(reset() and flush())
@@ -332,6 +334,8 @@ namespace jank {
 			if(status == '4')
 				errno = ENOTSUP;
 		}
+
+		msleep(250);
 
 		int e = errno;
 
