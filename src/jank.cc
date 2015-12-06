@@ -250,9 +250,9 @@ namespace jank {
 			}
 		}
 
-		msleep(250);
-
 		int e = errno;
+
+		msleep(250);
 
 		if(reset() and flush())
 			errno = e;
@@ -271,17 +271,6 @@ namespace jank {
 			return false;
 
 		while(sync() and not cancel()) {
-
-			/*
-
-			std::cout << "buffer = {";
-
-			for(auto ch : msr_buffer)
-				std::cout << ' ' << std::hex << std::setw(2) << std::setfill('0') << (int)ch;
-
-			std::cout << " }" << std::endl;
-
-			*/
 
 			auto iter = msr_buffer.cbegin();
 
@@ -335,9 +324,9 @@ namespace jank {
 				errno = ENOTSUP;
 		}
 
-		msleep(250);
-
 		int e = errno;
+
+		msleep(250);
 
 		if(reset() and flush())
 			errno = e;
