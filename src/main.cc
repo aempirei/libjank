@@ -202,10 +202,14 @@ int main(int argc, char **argv) {
 
 			if(strcasecmp(line, "ERASE") == 0) {
 
-				std::cout << "/batch-erase/ ; press enter to stop" << std::endl;
+				int n = 0;
 
-				while(msr.erase())
-					msleep(250);
+				std::cout << "/batch-erase/" << std::endl;
+
+				do {
+					msleep(500);
+					std::cout << "[" << ++n << "] swipe card or press <ENTER> to stop." << std::endl;
+				} while(msr.erase());
 
 				perror("ERASE");
 
