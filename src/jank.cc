@@ -156,6 +156,8 @@ namespace jank {
 	}
 
 	bool msr::reset() const {
+		const char msg[] = "[RESET]\n";
+		write(msg_fd, msg, strlen(msg));
 		return writen(ESC "a", 2) == 2;
 	}
 
@@ -191,10 +193,6 @@ namespace jank {
 		return expect(ESC "\x86", 2, ESC "0", 2);
 	}
 
-	bool msr::erase() {
-		return erase(true,true,true);
-	}
-
 	template <class T, class U> bool msr::begins_with(const T& a, const U& b) const {
 
 		auto iter = a.cbegin();
@@ -206,10 +204,17 @@ namespace jank {
 		return jter == b.end();
 	}
 
+	bool msr::erase() {
+		return erase(true,true,true);
+	}
+
 	bool msr::erase(bool t1, bool t2, bool t3) {
 
-		char tracks = (t1 ? 1 : 0) | (t2 ? 2 : 0) | (t3 ? 4 : 0);
-		char cmd[] = { '\033', 'c', tracks == 1 ? '\0' : tracks };
+		const char tracks = (t1 ? 1 : 0) | (t2 ? 2 : 0) | (t3 ? 4 : 0);
+		const char cmd[] = { '\033', 'c', tracks == 1 ? '\0' : tracks };
+		const char msg[] = "[ERASE]\n";
+
+		write(msg_fd, msg, strlen(msg));
 
 		if(writen(cmd, sizeof(cmd)) != sizeof(cmd))
 			return false;

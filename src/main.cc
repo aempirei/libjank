@@ -144,11 +144,8 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 
-	if(config::verbose)
-		std::cout << "[RESET]" << std::endl;
-
 	if(not msr.reset()) {
-		perror("RESET command failed");
+		perror("RESET");
 		return EXIT_FAILURE;
 	}
 
@@ -160,12 +157,12 @@ int main(int argc, char **argv) {
 		std::cout << "/info-mode/" << std::endl;
 
 		if(model == '\0') {
-			perror("msr::model()");
+			perror("MODEL");
 			return EXIT_FAILURE;
 		}
 
 		if(firmware.empty()) {
-			perror("msr::firmware()");
+			perror("FIRMWARE");
 			return EXIT_FAILURE;
 		}
 
@@ -201,35 +198,20 @@ int main(int argc, char **argv) {
 
 		while(not done and (line = readline(prompt.c_str())) != nullptr) {
 
-			if(strcasecmp(line, "erase") == 0) {
+			if(strcasecmp(line, "ERASE") == 0) {
 
 				std::cout << "/batch-erase/ ; press enter to stop" << std::endl;
 
-				for(;;) {
-
-					if(config::verbose)
-						std::cout << "[ERASE]" << std::endl;
-
-					if(not msr.erase()) {
-						perror("erase()");
-					}
-
+				while(msr.erase())
 					msleep(250);
-				}
 
-				if(config::verbose)
-					std::cout << "[RESET]" << std::endl;
+				perror("ERASE");
 
-				msr.reset();
-
-			} else if(strcasecmp(line, "reset") == 0) {
-
-				if(config::verbose)
-					std::cout << "[RESET]" << std::endl;
+			} else if(strcasecmp(line, "RESET") == 0) {
 
 				msr.reset();
 
-			} else if(strcasecmp(line, "quit") == 0) {
+			} else if(strcasecmp(line, "QUIT") == 0) {
 
 				done = true;
 			}
