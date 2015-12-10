@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
 								std::cout << "/batch-erase/" << std::endl;
 
 								do {
-										msleep(333);
+										msleep(500);
 										std::cout << "[" << ++n << "] swipe card or press <ENTER> to stop." << std::endl;
 								} while(msr.erase());
 
@@ -237,26 +237,6 @@ int main(int argc, char **argv) {
 												if(not track1.empty() and track1.front() == '%' and track1.back() == '?')
 														track1 = track1.substr(1, std::string::npos);
 
-												/*
-												if(not track2.empty() and track2.front() == ';' and track2.back() == '?') {
-														track2.pop_back();
-														track2 = track2.substr(1, std::string::npos);
-												}
-
-												if(not track3.empty() and track3.front() == ';' and track3.back() == '?')
-														track3.pop_back();
-
-												if(not track3.empty() and track3.front() == ';' and track3.back() == '?') {
-														track3.pop_back();
-														track3 = track3.substr(1, std::string::npos);
-												}
-
-												std::cout << "track1: " << track1 << std::endl;
-												std::cout << "track2: " << track2 << std::endl;
-												std::cout << "track3: " << track3 << std::endl;
-
-												*/
-
 												msleep(500);
 
 												while(not done) {
@@ -275,7 +255,7 @@ int main(int argc, char **argv) {
 																		break;
 														}
 
-														msleep(333);
+														msleep(500);
 												}
 
 										} else {
@@ -286,7 +266,7 @@ int main(int argc, char **argv) {
 														break;
 										}
 
-										msleep(333);
+										msleep(500);
 								}
 
 						} else if(strcasecmp(line, "READ") == 0) {
@@ -317,7 +297,7 @@ int main(int argc, char **argv) {
 														break;
 										}
 
-										msleep(333);
+										msleep(500);
 								}
 
 						} else if(strcasecmp(line, "RESET") == 0) {
