@@ -43,7 +43,8 @@ namespace jank {
 			bool off() const;
 			bool erase(bool,bool,bool);
 			bool erase();
-			bool read();
+
+			bool read(std::string&, std::string&, std::string&);
 
 			bool cancel();
 

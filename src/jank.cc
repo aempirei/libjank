@@ -271,7 +271,7 @@ namespace jank {
 		return false;
 	}
 
-	bool msr::read() {
+	bool msr::read(std::string& track1, std::string& track2, std::string& track3) {
 
 		const char cmd[] = { '\33', 'r' };
 		const char msg[] = "[READ]\n";
@@ -283,11 +283,11 @@ namespace jank {
 
 		while(sync() and not cancel()) {
 
-			auto iter = msr_buffer.cbegin();
+			track1.clear();
+			track2.clear();
+			track3.clear();
 
-			std::string track1;
-			std::string track2;
-			std::string track3;
+			auto iter = msr_buffer.cbegin();
 
 			if(iter == msr_buffer.end()) continue; if(*iter++ != '\33') { errno = EPROTO; break; }
 			if(iter == msr_buffer.end()) continue; if(*iter++ != 's') { errno = EPROTO; break; }
@@ -317,10 +317,6 @@ namespace jank {
 
 			while(msr_buffer.begin() != iter)
 				msr_buffer.pop_front();
-
-			std::cout << "track1=" << track1 << std::endl;
-			std::cout << "track2=" << track2 << std::endl;
-			std::cout << "track3=" << track3 << std::endl;
 
 			switch(status) {
 				case '0': return true;
