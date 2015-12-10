@@ -283,21 +283,12 @@ namespace jank {
 
 			::write(msg_fd, msg, strlen(msg));
 
-			std::cout << "WRITE[" << cmd.length() << "]: " << cmd << std::endl;
-
 			if(writen(cmd.c_str(), cmd.length()) != (ssize_t)cmd.length())
 					return false;
 
 			while(sync() and not cancel()) {
 
 					auto iter = msr_buffer.cbegin();
-
-					std::cout << "buffer = ";
-
-					for(auto ch : msr_buffer)
-							std::cout << ' ' << std::hex << std::setfill('0') << std::setw(2) << (int)ch;
-
-					std::cout << std::endl;
 
 					if(iter == msr_buffer.end()) continue; if(*iter++ != '\33') { errno = EPROTO; break; }
 					if(iter == msr_buffer.end()) continue; if(*iter < '0' or *iter > '?') { errno = EPROTO; break; }

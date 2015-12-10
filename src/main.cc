@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
 								std::string track2;
 								std::string track3;
 
-								std::cout << "/batch-read/" << std::endl;
+								std::cout << "/copy/" << std::endl;
 
 								while(not done) {
 
