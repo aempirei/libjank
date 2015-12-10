@@ -51,17 +51,22 @@ namespace jank {
 			bool test_ram() const;
 			bool test_sensor() const;
 
-			bool has_track1() const;
-			bool has_track2() const;
-			bool has_track3() const;
+			bool has_track1();
+			bool has_track2();
+			bool has_track3();
 
-			char model() const;
-			std::string firmware() const;
+			char model();
+			const char *firmware();
 
 			msr();
 			~msr();
 
 		private:
+
+			struct {
+				char *model;
+				char *firmware;
+			} cache;
 
 			int msr_fd;
 			int oob_fd;

@@ -20,7 +20,8 @@ namespace jank {
 	const msr::pattern_type<2> msr::response_fail = { { '\33', 'A' } };
 	const msr::pattern_type<2> msr::response_ack = { { '\33', 'y' } };
 
-	msr::msr() : active(false), sync_timeout(30) {
+	msr::msr() : active(false), sync_timeout(30) { //, cache({nullptr,nullptr}) {
+	memset(&cache, 0, sizeof(cache));
 	}
 
 	msr::~msr() {
@@ -138,6 +139,16 @@ namespace jank {
 		}
 
 		write(msg_fd, msg, strlen(msg));
+
+		if(cache.firmware) {
+			delete[] cache.firmware;
+			cache.firmware = nullptr;
+		}
+
+		if(cache.model) {
+			delete[] cache.model;
+			cache.model = nullptr;
+		}
 
 		close(msr_fd);
 		active = false;
@@ -329,56 +340,111 @@ namespace jank {
 		return false;
 	}
 
-	bool msr::has_track1() const {
+	bool msr::has_track1() {
 		char m = model();
 		return m == '3' or m == '5';
 	}
 
-	bool msr::has_track2() const {
+	bool msr::has_track2() {
 		char m = model();
 		return m != -1;
 	}
 
-	bool msr::has_track3() const {
+	bool msr::has_track3() {
 		char m = model();
 		return m == '2' or m == '3';
 	}
 
-	char msr::model() const {
+	char msr::model() {
 
-		constexpr size_t buf_sz = 3;
-		char buf[buf_sz];
-		ssize_t n;
+			const char cmd[] = { '\33', 't' };
+			const char msg[] = "[MODEL]\n";
 
-		if(writen(ESC "t", 2) != 2)
-			return -1;
+			write(msg_fd, msg, strlen(msg));
 
-		n = readn(buf, buf_sz);
-		if(n == -1)
-			return -1;
+			if(cache.model != nullptr)
+					return *cache.model;
 
-		if(buf[0] != '\33' or buf[2] != 'S') {
-			errno = EPROTO;
-			return -1;
-		}
+			if(writen(cmd, sizeof(cmd)) != sizeof(cmd))
+					return '\0';
 
-		return buf[1];
+			while(sync() and not cancel()) {
+
+					auto iter = msr_buffer.cbegin();
+
+					char ch;
+
+					if(iter == msr_buffer.end()) continue; if(*iter != '\33') { errno = EPROTO; break; } else iter++;
+					if(iter == msr_buffer.end()) continue; if(not isdigit(*iter)) { errno = EPROTO; break; } else ch = *iter++;
+					if(iter == msr_buffer.end()) continue; if(*iter != 'S') { errno = EPROTO; break; } else iter++;
+
+					while(msr_buffer.begin() != iter)
+							msr_buffer.pop_front();
+
+					cache.model = new char;
+
+					*cache.model = ch;
+
+					return *cache.model;
+			}
+
+			int e = errno;
+
+			msleep(250);
+
+			if(reset() and flush())
+					errno = e;
+
+			return '\0';
 	}
 
-	std::string msr::firmware() const {
+	const char *msr::firmware() {
 
-		constexpr size_t buf_sz = 9;
-		char buf[buf_sz];
-		ssize_t n;
+			const char cmd[] = { '\33', 'v' };
+			const char msg[] = "[FIRMWARE]\n";
 
-		if(writen(ESC "v", 2) != 2)
-			return "";
+			write(msg_fd, msg, strlen(msg));
 
-		n = readn(buf, buf_sz);
-		if(n == -1)
-			return "";
+			if(cache.firmware != nullptr)
+					return cache.firmware;
 
-		return std::string(buf + 1, buf_sz - 1);
+			if(writen(cmd, sizeof(cmd)) != sizeof(cmd))
+					return nullptr;
+
+			while(sync() and not cancel()) {
+
+					auto iter = msr_buffer.cbegin();
+
+					std::string s;
+
+					if(iter == msr_buffer.end()) continue; if(*iter != '\33') { errno = EPROTO; break; } else iter++;
+					if(iter == msr_buffer.end()) continue; if(*iter != 'R') { errno = EPROTO; break; } else s.push_back(*iter++);
+					if(iter == msr_buffer.end()) continue; if(*iter != 'E') { errno = EPROTO; break; } else s.push_back(*iter++);
+					if(iter == msr_buffer.end()) continue; if(*iter != 'V') { errno = EPROTO; break; } else s.push_back(*iter++);
+					if(iter == msr_buffer.end()) continue; if(not isalpha(*iter)) { errno = EPROTO; break; } else s.push_back(*iter++);
+					if(iter == msr_buffer.end()) continue; if(not isdigit(*iter)) { errno = EPROTO; break; } else s.push_back(*iter++);
+					if(iter == msr_buffer.end()) continue; if(*iter != '.') { errno = EPROTO; break; } else s.push_back(*iter++);
+					if(iter == msr_buffer.end()) continue; if(not isdigit(*iter)) { errno = EPROTO; break; } else s.push_back(*iter++);
+					if(iter == msr_buffer.end()) continue; if(not isdigit(*iter)) { errno = EPROTO; break; } else s.push_back(*iter++);
+
+					while(msr_buffer.begin() != iter)
+							msr_buffer.pop_front();
+
+					cache.firmware = new char[s.length() + 1];
+
+					strcpy(cache.firmware, s.c_str());
+
+					return cache.firmware;
+			}
+
+			int e = errno;
+
+			msleep(250);
+
+			if(reset() and flush())
+					errno = e;
+
+			return nullptr;
 	}
 
 	bool msr::expect(const void *tx, size_t tx_sz, const void *rx, size_t rx_sz) const {

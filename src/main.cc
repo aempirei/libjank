@@ -192,13 +192,14 @@ int main(int argc, char **argv) {
 
 	if(config::cli) {
 
-		std::string prompt = msr.firmware() + "> ";
-
+		char prompt[64];
 		char *line;
+
+		snprintf(prompt, sizeof(prompt), "%s> ", msr.firmware());
 
 		std::cout << "/cli-mode/" << std::endl;
 
-		while(not done and (line = readline(prompt.c_str())) != nullptr) {
+		while(not done and (line = readline(prompt)) != nullptr) {
 
 			if(strcasecmp(line, "ERASE") == 0) {
 
