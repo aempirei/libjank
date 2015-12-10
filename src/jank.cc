@@ -20,15 +20,15 @@ namespace jank {
 	const msr::pattern_type<2> msr::response_fail = { { '\33', 'A' } };
 	const msr::pattern_type<2> msr::response_ack = { { '\33', 'y' } };
 
-	msr::msr() : active(false), sync_timeout(30) { //, cache({nullptr,nullptr}) {
-	memset(&cache, 0, sizeof(cache));
+	msr::msr() : active(false), sync_timeout(30) {
+			memset(&cache, 0, sizeof(cache));
 	}
 
 	msr::~msr() {
-		if(active) {
-			reset();
-			stop();
-		}
+			if(active) {
+					reset();
+					stop();
+			}
 	}
 
 	bool msr::start(const char *my_device, int my_oob_fd, int my_msg_fd) {
@@ -138,7 +138,7 @@ namespace jank {
 			return false;
 		}
 
-		write(msg_fd, msg, strlen(msg));
+		::write(msg_fd, msg, strlen(msg));
 
 		if(cache.firmware) {
 			delete[] cache.firmware;
@@ -172,7 +172,7 @@ namespace jank {
 
 	bool msr::reset() const {
 		const char msg[] = "[RESET]\n";
-		write(msg_fd, msg, strlen(msg));
+		::write(msg_fd, msg, strlen(msg));
 		return writen(ESC "a", 2) == 2;
 	}
 
@@ -240,7 +240,7 @@ namespace jank {
 		const char cmd[] = { '\33', 'c', tracks == 1 ? '\0' : tracks };
 		const char msg[] = "[ERASE]\n";
 
-		write(msg_fd, msg, strlen(msg));
+		::write(msg_fd, msg, strlen(msg));
 
 		if(writen(cmd, sizeof(cmd)) != sizeof(cmd))
 			return false;
@@ -271,12 +271,70 @@ namespace jank {
 		return false;
 	}
 
+	bool msr::write(const std::string& track1, const std::string& track2, const std::string& track3) {
+
+			const char msg[] = "[WRITE]\n";
+
+			std::stringstream ss;
+
+			ss << "\33w\33s\33\1" << track1 << "\33\2" << track2 << "\33\3" << track3 << "?\34";
+
+			std::string cmd = ss.str();
+
+			::write(msg_fd, msg, strlen(msg));
+
+			std::cout << "WRITE[" << cmd.length() << "]: " << cmd << std::endl;
+
+			if(writen(cmd.c_str(), cmd.length()) != (ssize_t)cmd.length())
+					return false;
+
+			while(sync() and not cancel()) {
+
+					auto iter = msr_buffer.cbegin();
+
+					std::cout << "buffer = ";
+
+					for(auto ch : msr_buffer)
+							std::cout << ' ' << std::hex << std::setfill('0') << std::setw(2) << (int)ch;
+
+					std::cout << std::endl;
+
+					if(iter == msr_buffer.end()) continue; if(*iter++ != '\33') { errno = EPROTO; break; }
+					if(iter == msr_buffer.end()) continue; if(*iter < '0' or *iter > '?') { errno = EPROTO; break; }
+
+					char status = *iter++;
+
+					while(msr_buffer.begin() != iter)
+							msr_buffer.pop_front();
+
+					switch(status) {
+							case '0': return true;
+							case '1': errno = EIO; break;
+							case '2': errno = EINVAL; break;
+							case '4': errno = ENOTSUP; break;
+							case '9': errno = ENOMEDIUM; break;
+					}
+
+					break;
+			}
+
+			int e = errno;
+
+			msleep(250);
+
+			if(reset() and flush())
+					errno = e;
+
+			return false;
+
+	}
+
 	bool msr::read(std::string& track1, std::string& track2, std::string& track3) {
 
 		const char cmd[] = { '\33', 'r' };
 		const char msg[] = "[READ]\n";
 
-		write(msg_fd, msg, strlen(msg));
+		::write(msg_fd, msg, strlen(msg));
 
 		if(writen(cmd, sizeof(cmd)) != sizeof(cmd))
 			return false;
@@ -300,7 +358,7 @@ namespace jank {
 			if(iter == msr_buffer.end()) continue; if(*iter++ != '\33') { errno = EPROTO; break; }
 			if(iter == msr_buffer.end()) continue; if(*iter++ != '\2') { errno = EPROTO; break; }
 
-			while(iter != msr_buffer.end() and *iter != '\33')
+			while(iter != msr_buffer.end() and *iter >= '0' and *iter <= '?')
 				track2.push_back(*iter++);
 
 			if(iter == msr_buffer.end()) continue; if(*iter++ != '\33') { errno = EPROTO; break; }
@@ -324,6 +382,8 @@ namespace jank {
 				case '2': errno = EINVAL; break;
 				case '4': errno = ENOTSUP; break;
 			}
+
+			break;
 		}
 
 		int e = errno;
@@ -356,7 +416,7 @@ namespace jank {
 			const char cmd[] = { '\33', 't' };
 			const char msg[] = "[MODEL]\n";
 
-			write(msg_fd, msg, strlen(msg));
+			::write(msg_fd, msg, strlen(msg));
 
 			if(cache.model != nullptr)
 					return *cache.model;
@@ -399,7 +459,7 @@ namespace jank {
 			const char cmd[] = { '\33', 'v' };
 			const char msg[] = "[FIRMWARE]\n";
 
-			write(msg_fd, msg, strlen(msg));
+			::write(msg_fd, msg, strlen(msg));
 
 			if(cache.firmware != nullptr)
 					return cache.firmware;
@@ -490,7 +550,7 @@ namespace jank {
 
 		while(left > 0) {
 
-			n = write(msr_fd, p + done, left);
+			n = ::write(msr_fd, p + done, left);
 
 			if(n == -1) {
 				if(errno == EINTR)
@@ -531,8 +591,6 @@ namespace jank {
 			left -= n;
 			done += n;
 		}
-
-		// std::cout << hex((char *)buf, done) << std::endl;
 
 		return done;
 	}

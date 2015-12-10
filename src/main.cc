@@ -214,6 +214,81 @@ int main(int argc, char **argv) {
 
 								perror("ERASE");
 
+						} else if(strcasecmp(line, "COPY") == 0) {
+
+								bool done = false;
+
+								std::string track1;
+								std::string track2;
+								std::string track3;
+
+								std::cout << "/batch-read/" << std::endl;
+
+								while(not done) {
+
+										std::cout << "swipe read card or press <ENTER> to cancel." << std::endl;
+
+										if(msr.read(track1, track2, track3)) {
+
+												std::cout << "track1: " << track1 << std::endl;
+												std::cout << "track2: " << track2 << std::endl;
+												std::cout << "track3: " << track3 << std::endl;
+
+												if(not track1.empty() and track1.front() == '%' and track1.back() == '?')
+														track1 = track1.substr(1, std::string::npos);
+
+												/*
+												if(not track2.empty() and track2.front() == ';' and track2.back() == '?') {
+														track2.pop_back();
+														track2 = track2.substr(1, std::string::npos);
+												}
+
+												if(not track3.empty() and track3.front() == ';' and track3.back() == '?')
+														track3.pop_back();
+
+												if(not track3.empty() and track3.front() == ';' and track3.back() == '?') {
+														track3.pop_back();
+														track3 = track3.substr(1, std::string::npos);
+												}
+
+												std::cout << "track1: " << track1 << std::endl;
+												std::cout << "track2: " << track2 << std::endl;
+												std::cout << "track3: " << track3 << std::endl;
+
+												*/
+
+												msleep(500);
+
+												while(not done) {
+
+														std::cout << "swipe write card or press <ENTER> to cancel." << std::endl;
+
+														if(msr.write(track1, track2, track3)) {
+
+																done = true;
+
+														} else {
+
+																perror("WRITE");
+
+																if(errno == ECANCELED or errno == EINVAL)
+																		break;
+														}
+
+														msleep(333);
+												}
+
+										} else {
+
+												perror("READ");
+
+												if(errno == ECANCELED)
+														break;
+										}
+
+										msleep(333);
+								}
+
 						} else if(strcasecmp(line, "READ") == 0) {
 
 								int n = 0;
