@@ -83,6 +83,8 @@ namespace jank {
 			const static pattern_type<2> response_fail;
 			const static pattern_type<2> response_ack;
 
+			void message(const char *) const;
+
 			bool expect(const void *, size_t, const void *, size_t) const;
 
 			ssize_t writen(const void *, size_t) const;
@@ -91,6 +93,6 @@ namespace jank {
 
 			std::string hex(const char *, size_t) const;
 
-			template <class T, class U> bool begins_with(const T&, const U&) const;
+			template <class T, class U> std::pair<bool,typename T::const_iterator> begins_with(const T&, const U&) const;
 	};
 }
