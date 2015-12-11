@@ -14,6 +14,20 @@
 
 #define ESC "\33"
 
+#define compare_position(I,B,R)	\
+								\
+	if((I)==(B).end())			\
+		continue;				\
+	if(not(R(*(I)))) {			\
+		errno = EPROTO;			\
+		break;					\
+	}							\
+	(I)++;
+
+#define is(c)		(c) ==
+#define isescape(c) ((c) == '\33')
+#define isstatus(c) ((c) >= '0' and (c) <= '?')
+
 namespace jank {
 
 	const msr::pattern_type<2> msr::response_ok = { { '\33', '0' } };
@@ -263,21 +277,6 @@ namespace jank {
 						errno = EIO;
 						return false;
 				}
-
-				/*
-				   if(begins_with(msr_buffer, response_ok)) {
-				   for(size_t i = 0; i < response_ok.size(); i++)
-				   msr_buffer.pop_front();
-				   return true;
-				   }
-
-				   if(begins_with(msr_buffer, response_fail)) {
-				   for(size_t i = 0; i < response_fail.size(); i++)
-				   msr_buffer.pop_front();
-				   errno = EIO; 
-				   return false;
-				   }
-				 */
 		}
 
 		int e = errno;
@@ -348,20 +347,6 @@ namespace jank {
 		while(sync() and not cancel()) {
 
 			auto iter = msr_buffer.cbegin();
-
-#define compare_position(I,B,R)	\
-								\
-	if((I)==(B).end())			\
-		continue;				\
-	if(not(R(*(I)))) {			\
-		errno = EPROTO;			\
-		break;					\
-	}							\
-	(I)++;
-
-#define is(c)		(c) ==
-#define isescape(c) ((c) == '\33')
-#define isstatus(c) ((c) >= '0' and (c) <= '?')
 
 			compare_position(iter, msr_buffer, isescape);
 			compare_position(iter, msr_buffer, is('s'));
