@@ -346,6 +346,13 @@ namespace jank {
 
 		while(sync() and not cancel()) {
 
+			for(auto ch : msr_buffer) {
+				if(isprint(ch))
+					std::cout << (char)ch;
+				else
+					std::cout << "\\x" << std::hex << std::setfill('0') << std::setw(2) << (int)ch;
+			}
+
 			auto iter = msr_buffer.cbegin();
 
 			compare_position(iter, msr_buffer, isescape);
@@ -601,7 +608,7 @@ namespace jank {
 
 		std::stringstream ss;
 
-		ss << std::dec << "char s[" << sz << "] = {";
+		ss << "char s[" << std::dec << sz << "] = {";
 
 		for(unsigned int n = 0; n < sz; n++)
 			ss << ' ' << std::hex << std::setfill('0') << std::setw(2) << (int)s[n];
