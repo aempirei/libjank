@@ -156,6 +156,7 @@ int main(int argc, char **argv) {
 		}
 
 		if(config::detect) {
+			msr.sync_timeout = 1;
 			return msr.model() == '\0' ? EXIT_FAILURE : EXIT_SUCCESS;
 		}
 
