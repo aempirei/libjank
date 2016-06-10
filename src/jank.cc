@@ -30,9 +30,21 @@
 
 namespace jank {
 
-	const msr::pattern_type<2> msr::response_ok = { { '\33', '0' } };
-	const msr::pattern_type<2> msr::response_fail = { { '\33', 'A' } };
-	const msr::pattern_type<2> msr::response_ack = { { '\33', 'y' } };
+	const pattern_type<2> response::ok = { { '\33', '0' } };
+	const pattern_type<2> response::fail = { { '\33', 'A' } };
+	const pattern_type<2> response::ack = { { '\33', 'y' } };
+
+	template <class T, class U> std::pair<bool,typename T::iterator> begins_with(T& a, const U& b) {
+
+		auto iter = a.begin();
+		auto jter = b.cbegin();
+
+		while(iter != a.end() and jter != b.end() and *iter++ == *jter++)
+			void();
+
+		return std::make_pair(jter == b.cend(), iter);
+	}
+
 
 	msr::msr() : active(false), sync_timeout(30) {
 			memset(&cache, 0, sizeof(cache));
@@ -225,17 +237,6 @@ namespace jank {
 		return expect(ESC "\x86", 2, ESC "0", 2);
 	}
 
-	template <class T, class U> std::pair<bool,typename T::const_iterator> msr::begins_with(const T& a, const U& b) const {
-
-		auto iter = a.cbegin();
-		auto jter = b.cbegin();
-
-		while(iter != a.end() and jter != b.end() and *iter++ == *jter++)
-			void();
-
-		return std::make_pair(jter == b.end(), iter);
-	}
-
 	bool msr::erase() {
 		return erase(true,true,true);
 	}
@@ -263,17 +264,17 @@ namespace jank {
 
 		while(sync() and not cancel()) {
 
-				auto response = begins_with(msr_buffer, response_ok);
+				auto resp = begins_with(msr_buffer, response::ok);
 
-				if(response.first) {
-						msr_buffer.erase(msr_buffer.cbegin(), response.second);
+				if(resp.first) {
+						msr_buffer.erase(msr_buffer.begin(), resp.second);
 						return true;
 				}
 
-				response = begins_with(msr_buffer, response_fail);
+				resp = begins_with(msr_buffer, response::fail);
 
-				if(response.first) {
-						msr_buffer.erase(msr_buffer.cbegin(), response.second);
+				if(resp.first) {
+						msr_buffer.erase(msr_buffer.begin(), resp.second);
 						errno = EIO;
 						return false;
 				}
@@ -304,14 +305,14 @@ namespace jank {
 
 			while(sync() and not cancel()) {
 
-					auto iter = msr_buffer.cbegin();
+					auto iter = msr_buffer.begin();
 
 					if(iter == msr_buffer.end()) continue; if(*iter++ != '\33') { errno = EPROTO; break; }
 					if(iter == msr_buffer.end()) continue; if(*iter < '0' or *iter > '?') { errno = EPROTO; break; }
 
 					char status = *iter++;
 
-					msr_buffer.erase(msr_buffer.cbegin(), iter);
+					msr_buffer.erase(msr_buffer.begin(), iter);
 
 					switch(status) {
 							case '0': return true;
@@ -346,7 +347,7 @@ namespace jank {
 
 		while(sync() and not cancel()) {
 
-			auto iter = msr_buffer.cbegin();
+			auto iter = msr_buffer.begin();
 
 			compare_position(iter, msr_buffer, isescape);
 			compare_position(iter, msr_buffer, is('s'));
@@ -380,7 +381,7 @@ namespace jank {
 
 			char status = *std::prev(iter);
 
-			msr_buffer.erase(msr_buffer.cbegin(), iter);
+			msr_buffer.erase(msr_buffer.begin(), iter);
 
 			switch(status) {
 					case '0': return true;
@@ -431,7 +432,7 @@ namespace jank {
 
 			while(sync() and not cancel()) {
 
-					auto iter = msr_buffer.cbegin();
+					auto iter = msr_buffer.begin();
 
 					char ch;
 
@@ -439,7 +440,7 @@ namespace jank {
 					if(iter == msr_buffer.end()) continue; if(not isdigit(*iter)) { errno = EPROTO; break; } else ch = *iter++;
 					if(iter == msr_buffer.end()) continue; if(*iter != 'S') { errno = EPROTO; break; } else iter++;
 
-					msr_buffer.erase(msr_buffer.cbegin(), iter);
+					msr_buffer.erase(msr_buffer.begin(), iter);
 
 					cache.model = new char;
 
@@ -472,7 +473,7 @@ namespace jank {
 
 			while(sync() and not cancel()) {
 
-					auto iter = msr_buffer.cbegin();
+					auto iter = msr_buffer.begin();
 
 					std::string s;
 
@@ -486,7 +487,7 @@ namespace jank {
 					if(iter == msr_buffer.end()) continue; if(not isdigit(*iter)) { errno = EPROTO; break; } else s.push_back(*iter++);
 					if(iter == msr_buffer.end()) continue; if(not isdigit(*iter)) { errno = EPROTO; break; } else s.push_back(*iter++);
 
-					msr_buffer.erase(msr_buffer.cbegin(), iter);
+					msr_buffer.erase(msr_buffer.begin(), iter);
 
 					cache.firmware = new char[s.length() + 1];
 
