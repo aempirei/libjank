@@ -27,7 +27,7 @@ namespace config {
 	bool detect = false;
 
 	const char *glob = "/dev/ttyUSB*";
-	const char *device = "/dev/ttyUSB0";
+	const char *device = "/dev/msr605";
 
 	int argc;
 	char **argv;
