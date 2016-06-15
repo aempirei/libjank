@@ -1,0 +1,22 @@
+#!/bin/bash
+
+devicename='/dev/msr605'
+fileglob='/dev/ttyUSB*'
+
+if [ -h "$devicename" ]; then
+	if ! rm -fv "$devicename"; then
+		echo "ERROR: cannot remove symbolic link $devicename"
+		exit
+	fi
+elif [ -e "$devicename" ]; then
+	echo "ERROR: $devicename already exists"
+	exit
+fi
+
+for filename in $fileglob; do
+	if jank -Dd "$filename"; then
+		basename=`basename "$filename"`
+		ln -vs "$basename" "$devicename"
+		break
+	fi
+done
