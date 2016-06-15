@@ -12,14 +12,21 @@ namespace jank {
 
 	class msr;
 
+	template <class T, class U> std::pair<bool,typename T::iterator> begins_with(T&, const U&);
+
+	template <size_t N> using pattern_type = std::array<int,N>;
+
+	struct response {
+			const static pattern_type<2> ok;
+			const static pattern_type<2> fail;
+			const static pattern_type<2> ack;
+	};
 
 	class msr {
 
 		public:
 
 			using buffer_type = std::list<char>;
-
-			template <size_t N> using pattern_type = std::array<int,N>;
 
 			bool active;
 
@@ -79,10 +86,6 @@ namespace jank {
 
 			constexpr static size_t read_block_sz = 1024;
 
-			const static pattern_type<2> response_ok;
-			const static pattern_type<2> response_fail;
-			const static pattern_type<2> response_ack;
-
 			void message(const char *) const;
 
 			bool expect(const void *, size_t, const void *, size_t) const;
@@ -92,7 +95,5 @@ namespace jank {
 			int memncmp(const void *, size_t, const void *, size_t) const;
 
 			std::string hex(const char *, size_t) const;
-
-			template <class T, class U> std::pair<bool,typename T::const_iterator> begins_with(const T&, const U&) const;
 	};
 }

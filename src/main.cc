@@ -24,6 +24,7 @@ namespace config {
 	bool info = false;
 	bool test = false;
 	bool cli = false;
+	bool detect = false;
 
 	const char *glob = "/dev/ttyUSB*";
 	const char *device = "/dev/ttyUSB0";
@@ -41,10 +42,11 @@ namespace config {
 
 		std::cout << "\t-h          show this help" << std::endl;
 
-		std::cout << "\t-t          toggle test mode (default="         << (test    ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-v          toggle verbose mode (default="      << (verbose ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-i          toggle info mode (default="         << (info    ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-c          toggle command-line mode (default=" << (cli     ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-t          toggle test mode (default="                     << (test    ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-v          toggle verbose mode (default="                  << (verbose ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-i          toggle info mode (default="                     << (info    ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-c          toggle command-line mode (default="             << (cli     ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-D          toggle MSR-605 device detection mode (default=" << (detect  ? "ENABLED" : "DISABLED") << ")" << std::endl;
 
 		std::cout << "\t-d device   filename of MSR-605 device";
 
@@ -67,7 +69,7 @@ namespace config {
 
 		int opt;
 
-		while((opt = getopt(argc, argv, "hvitcd:")) != -1) {
+		while((opt = getopt(argc, argv, "hvitcDd:")) != -1) {
 
 			switch(opt) {
 
@@ -75,6 +77,7 @@ namespace config {
 				case 'i': info    = not info    ; break;
 				case 't': test    = not test    ; break;
 				case 'c': cli     = not cli     ; break;
+				case 'D': detect  = not detect  ; break;
 
 				case 'd':
 						  device = optarg;
@@ -130,6 +133,7 @@ int main(int argc, char **argv) {
 		if(config::verbose) {
 
 				std::cout << "verbose=" << ( config::verbose ? "ENABLED" : "DISABLED" ) << std::endl;
+				std::cout << "detect="  << ( config::detect  ? "ENABLED" : "DISABLED" ) << std::endl;
 				std::cout << "test="    << ( config::test    ? "ENABLED" : "DISABLED" ) << std::endl;
 				std::cout << "info="    << ( config::info    ? "ENABLED" : "DISABLED" ) << std::endl;
 				std::cout << "cli="     << ( config::cli     ? "ENABLED" : "DISABLED" ) << std::endl;
@@ -149,6 +153,11 @@ int main(int argc, char **argv) {
 		if(not msr.reset()) {
 				perror("RESET");
 				return EXIT_FAILURE;
+		}
+
+		if(config::detect) {
+			msr.sync_timeout = 1;
+			return msr.model() == '\0' ? EXIT_FAILURE : EXIT_SUCCESS;
 		}
 
 		if(config::info) {
