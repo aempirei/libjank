@@ -225,6 +225,22 @@ namespace jank {
 		return writen(ESC "\x81", 2) == 2;
 	}
 
+	bool msr::set_hico() {
+		return writen(ESC "x", 2) == 2;
+	}
+
+	bool msr::set_loco() {
+		return writen(ESC "y", 2) == 2;
+	}
+
+	bool msr::is_hico() {
+		return expect(ESC "d", 2, ESC "H", 2);
+	}
+
+	bool msr::is_loco() {
+		return expect(ESC "d", 2, ESC "L", 2);
+	}
+
 	bool msr::test_comm() const {
 		return expect(ESC "e", 2, ESC "y", 2);
 	}

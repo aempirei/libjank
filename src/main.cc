@@ -20,83 +20,84 @@
 
 namespace config {
 
-	bool verbose = false;
-	bool info = false;
-	bool test = false;
-	bool cli = false;
-	bool detect = false;
+		bool verbose = false;
+		bool info = false;
+		bool test = false;
+		bool cli = false;
+		bool detect = false;
 
-	const char *glob = "/dev/ttyUSB*";
-	const char *device = "/dev/msr605";
+		const char *glob = "/dev/ttyUSB*";
+		const char *device = "/dev/ttyUSB0";
 
-	int argc;
-	char **argv;
+		int argc;
+		char **argv;
 
-	jank::msr msr;
+		jank::msr msr;
 
-	void usage() {
+		void usage() {
 
-		std::string prog = basename(argv[0]);
+				std::string prog = basename(argv[0]);
 
-		std::cout << std::endl << "usage: " << prog << " [options] -d device" << std::endl << std::endl;
+				std::cout << std::endl << "usage: " << prog << " [options] -d device" << std::endl << std::endl;
 
-		std::cout << "\t-h          show this help" << std::endl;
+				std::cout << "\t-h          show this help" << std::endl;
 
-		std::cout << "\t-t          toggle test mode (default="                     << (test    ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-v          toggle verbose mode (default="                  << (verbose ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-i          toggle info mode (default="                     << (info    ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-c          toggle command-line mode (default="             << (cli     ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-D          toggle MSR-605 device detection mode (default=" << (detect  ? "ENABLED" : "DISABLED") << ")" << std::endl;
+				std::cout << "\t-t          toggle test mode (default="                     << (test    ? "ENABLED" : "DISABLED") << ")" << std::endl;
+				std::cout << "\t-v          toggle verbose mode (default="                  << (verbose ? "ENABLED" : "DISABLED") << ")" << std::endl;
+				std::cout << "\t-i          toggle info mode (default="                     << (info    ? "ENABLED" : "DISABLED") << ")" << std::endl;
+				std::cout << "\t-c          toggle command-line mode (default="             << (cli     ? "ENABLED" : "DISABLED") << ")" << std::endl;
+				std::cout << "\t-D          toggle MSR-605 device detection mode (default=" << (detect  ? "ENABLED" : "DISABLED") << ")" << std::endl;
 
-		std::cout << "\t-d device   filename of MSR-605 device";
+				std::cout << "\t-d device   filename of MSR-605 device";
 
-		if(device != nullptr)
-			std::cout << " (default=" << device << ")";
+				if(device != nullptr)
+						std::cout << " (default=" << device << ")";
 
-		std::cout << std::endl;
+				std::cout << std::endl;
 
-		std::cout << std::endl;
+				std::cout << std::endl;
 
-	}
-
-	void init(int my_argc, char **my_argv) {
-
-		argc = my_argc;
-		argv = my_argv;
-	}
-
-	bool parse() {
-
-		int opt;
-
-		while((opt = getopt(argc, argv, "hvitcDd:")) != -1) {
-
-			switch(opt) {
-
-				case 'v': verbose = not verbose ; break;
-				case 'i': info    = not info    ; break;
-				case 't': test    = not test    ; break;
-				case 'c': cli     = not cli     ; break;
-				case 'D': detect  = not detect  ; break;
-
-				case 'd':
-						  device = optarg;
-						  break;
-
-				case 'h':
-				default:
-						  return false;
-			}
 		}
 
-		return true;
-	}
+		void init(int my_argc, char **my_argv) {
+
+				argc = my_argc;
+				argv = my_argv;
+		}
+
+		bool parse() {
+
+				int opt;
+
+				while((opt = getopt(argc, argv, "hvitcDd:")) != -1) {
+
+						switch(opt) {
+
+								case 'v': verbose = not verbose ; break;
+								case 'i': info    = not info    ; break;
+								case 't': test    = not test    ; break;
+								case 'c': cli     = not cli     ; break;
+								case 'D': detect  = not detect  ; break;
+
+								case 'd':
+										  device = optarg;
+										  break;
+
+								case 'h':
+								default:
+										  return false;
+						}
+				}
+
+				return true;
+		}
 }
 
 volatile sig_atomic_t done = false;
 
 void signal_handler(int);
 void exit_handler();
+void flash(const jank::msr&, int, int);
 
 int main(int argc, char **argv) {
 
@@ -156,8 +157,8 @@ int main(int argc, char **argv) {
 		}
 
 		if(config::detect) {
-			msr.sync_timeout = 1;
-			return msr.model() == '\0' ? EXIT_FAILURE : EXIT_SUCCESS;
+				msr.sync_timeout = 1;
+				return msr.model() == '\0' ? EXIT_FAILURE : EXIT_SUCCESS;
 		}
 
 		if(config::info) {
@@ -216,9 +217,11 @@ int main(int argc, char **argv) {
 
 								std::cout << "/batch-erase/" << std::endl;
 
+								msr.flush();
+
 								do {
-										msleep(500);
 										std::cout << "[" << ++n << "] swipe card or press <ENTER> to stop." << std::endl;
+										flash(msr, 3, 50);
 								} while(msr.erase());
 
 								perror("ERASE");
@@ -308,7 +311,14 @@ int main(int argc, char **argv) {
 
 										msleep(500);
 								}
-
+						} else if(strcasecmp(line, "HICO") == 0) {
+								msr.set_hico();
+						} else if(strcasecmp(line, "LOCO") == 0) {
+								msr.set_loco();
+						} else if(strcasecmp(line, "CO?") == 0) {
+								std::cout << "/get-coercivity/" << std::endl;
+								if(msr.is_hico()) std::cout << "HICO" << std::endl;
+								if(msr.is_loco()) std::cout << "LOCO" << std::endl;
 						} else if(strcasecmp(line, "RESET") == 0) {
 
 								msr.reset();
@@ -325,13 +335,23 @@ int main(int argc, char **argv) {
 		return EXIT_SUCCESS;
 }
 
+void flash(const jank::msr& msr, int n, int ms) {
+		for(int y = 0; y < n; y++) {
+				msleep(ms);
+				msr.on();
+				msleep(ms);
+				msr.off();
+		}
+		msleep(ms);
+}
+
 void exit_handler() {
 }
 
 void signal_handler(int signo) {
-	if(signo == SIGINT) {
-		signal(signo, SIG_IGN);
-		putchar('\n');
-		exit(EXIT_FAILURE);
-	}
+		if(signo == SIGINT) {
+				signal(signo, SIG_IGN);
+				putchar('\n');
+				exit(EXIT_FAILURE);
+		}
 }

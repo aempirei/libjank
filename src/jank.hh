@@ -64,6 +64,12 @@ namespace jank {
 			bool has_track2();
 			bool has_track3();
 
+			bool set_hico();
+			bool set_loco();
+
+			bool is_hico();
+			bool is_loco();
+
 			char model();
 			const char *firmware();
 
