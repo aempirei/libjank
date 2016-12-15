@@ -25,9 +25,10 @@ namespace config {
 		bool test = false;
 		bool cli = false;
 		bool detect = false;
+		bool led = false;
 
 		const char *glob = "/dev/ttyUSB*";
-		const char *device = "/dev/ttyUSB0";
+		const char *device = "/dev/msr605";
 
 		int argc;
 		char **argv;
@@ -47,6 +48,7 @@ namespace config {
 				std::cout << "\t-i          toggle info mode (default="                     << (info    ? "ENABLED" : "DISABLED") << ")" << std::endl;
 				std::cout << "\t-c          toggle command-line mode (default="             << (cli     ? "ENABLED" : "DISABLED") << ")" << std::endl;
 				std::cout << "\t-D          toggle MSR-605 device detection mode (default=" << (detect  ? "ENABLED" : "DISABLED") << ")" << std::endl;
+				std::cout << "\t-L          toggle LED flashing mode (default="             << (led     ? "ENABLED" : "DISABLED") << ")" << std::endl;
 
 				std::cout << "\t-d device   filename of MSR-605 device";
 
@@ -69,7 +71,7 @@ namespace config {
 
 				int opt;
 
-				while((opt = getopt(argc, argv, "hvitcDd:")) != -1) {
+				while((opt = getopt(argc, argv, "hvitcDLd:")) != -1) {
 
 						switch(opt) {
 
@@ -78,6 +80,7 @@ namespace config {
 								case 't': test    = not test    ; break;
 								case 'c': cli     = not cli     ; break;
 								case 'D': detect  = not detect  ; break;
+								case 'L': led     = not led     ; break;
 
 								case 'd':
 										  device = optarg;
@@ -159,6 +162,10 @@ int main(int argc, char **argv) {
 		if(config::detect) {
 				msr.sync_timeout = 1;
 				return msr.model() == '\0' ? EXIT_FAILURE : EXIT_SUCCESS;
+		}
+
+		if(config::led) {
+				flash(msr, 4, 100);
 		}
 
 		if(config::info) {
