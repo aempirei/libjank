@@ -28,7 +28,8 @@ namespace config {
 		bool led = false;
 
 		const char *glob = "/dev/ttyUSB*";
-		const char *device = "/dev/msr605";
+		const char *device = "/dev/ttyUSB0";
+		// const char *device = "/dev/msr605";
 
 		int argc;
 		char **argv;
@@ -107,6 +108,7 @@ int main(int argc, char **argv) {
 		auto& msr = config::msr;
 
 		int msg_fd;
+		int oob_fd;
 
 		config::init(argc, argv);
 
@@ -129,7 +131,17 @@ int main(int argc, char **argv) {
 		} else {
 				msg_fd = open("/dev/null", O_WRONLY);
 				if(msg_fd == -1) {
-						perror("open(\"/dev/null\", ...)");
+						perror("open(\"/dev/null\", O_WRONLY)");
+						return EXIT_FAILURE;
+				}
+		}
+
+		if(config::cli) {
+				oob_fd = STDIN_FILENO;
+		} else {
+				oob_fd = open("/dev/null", O_RDONLY);
+				if(oob_fd == -1) {
+						perror("open(\"/dev/null\", O_RDONLY)");
 						return EXIT_FAILURE;
 				}
 		}
@@ -149,7 +161,7 @@ int main(int argc, char **argv) {
 		if(config::verbose)
 				std::cout << "[START]" << std::endl;
 
-		if(msr.start(config::device, STDIN_FILENO, msg_fd) == false) {
+		if(msr.start(config::device, oob_fd, msg_fd) == false) {
 				std::cerr << "failed to start device " << config::device << ": " << strerror(errno) << std::endl;
 				return EXIT_FAILURE;
 		}
