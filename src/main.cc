@@ -230,18 +230,30 @@ int main(int argc, char **argv) {
 
 				while(not done and (line = readline(prompt)) != nullptr) {
 
-						if(strcasecmp(line, "ERASE") == 0) {
+						if(strncasecmp(line, "ERASE", 5) == 0) {
+
+								int t1, t2, t3;
+
+								if(sscanf(line, " %*s %d %d %d ", &t1, &t2, &t3) == 3) {
+									// do nothing
+								} else {
+									t1 = t2 = t3 = true;
+								}
 
 								int n = 0;
 
-								std::cout << "/batch-erase/" << std::endl;
+								std::cout << "/batch-erase-";
+								if(t1) std::cout << '1';
+								if(t2) std::cout << '2';
+								if(t3) std::cout << '3';
+								std::cout << '/' << std::endl;
 
 								msr.flush();
 
 								do {
 										std::cout << "[" << ++n << "] swipe card or press <ENTER> to stop." << std::endl;
 										flash(msr, 3, 50);
-								} while(msr.erase());
+								} while(msr.erase(t1,t2,t3));
 
 								perror("ERASE");
 
