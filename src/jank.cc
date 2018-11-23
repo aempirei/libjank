@@ -4,6 +4,7 @@
 #include <string>
 
 #include <cstring>
+#include <cctype>
 
 #include <termios.h>
 #include <unistd.h>
@@ -12,27 +13,35 @@
 
 #include <jank.hh>
 
-#define ESC "\33"
+#define ESC "\033"
 
 #define compare_position(I,B,R)	\
-								\
-	if((I)==(B).end())			\
-		continue;				\
-	if(not(R(*(I)))) {			\
-		errno = EPROTO;			\
-		break;					\
-	}							\
-	(I)++;
+				\
+	if((I)==(B).end())	\
+		continue;	\
+	if(not(R(*(I)))) {	\
+		errno = EPROTO;	\
+		break;		\
+	}			\
+	(I)++
 
-#define is(c)		(c) ==
-#define isescape(c) ((c) == '\33')
-#define isstatus(c) ((c) >= '0' and (c) <= '?')
+#define compare_position_nf(I,B,R)	\
+					\
+	if((I)==(B).end())		\
+		continue;		\
+	if(not(R(*(I))))		\
+		continue;		\
+	(I)++
+
+#define is(L)		(L) ==
+#define isescape(R)	(is('\033')(R))
+#define isstatus(R)	((R) >= '0' and (R) <= '?')
 
 namespace jank {
 
-	const pattern_type<2> response::ok = { { '\33', '0' } };
-	const pattern_type<2> response::fail = { { '\33', 'A' } };
-	const pattern_type<2> response::ack = { { '\33', 'y' } };
+	const pattern_type<2> response::ok = { { '\033', '0' } };
+	const pattern_type<2> response::fail = { { '\033', 'A' } };
+	const pattern_type<2> response::ack = { { '\033', 'y' } };
 
 	template <class T, class U> std::pair<bool,typename T::iterator> begins_with(T& a, const U& b) {
 
@@ -271,7 +280,7 @@ namespace jank {
 	bool msr::erase(bool t1, bool t2, bool t3) {
 
 		const char tracks = (t1 ? 1 : 0) | (t2 ? 2 : 0) | (t3 ? 4 : 0);
-		const char cmd[] = { '\33', 'c', tracks == 1 ? '\0' : tracks };
+		const char cmd[] = { '\033', 'c', tracks == 1 ? '\0' : tracks };
 
 		message("ERASE");
 
@@ -312,7 +321,7 @@ namespace jank {
 
 			std::stringstream ss;
 
-			ss << "\33w\33s\33\1" << track1 << "\33\2" << track2 << "\33\3" << track3 << "?\34";
+			ss << "\033w\033s\033\1" << track1 << "\033\2" << track2 << "\033\3" << track3 << "?\34";
 
 			std::string cmd = ss.str();
 
@@ -323,10 +332,10 @@ namespace jank {
 
 					auto iter = msr_buffer.begin();
 
-					if(iter == msr_buffer.end()) continue; if(*iter++ != '\33') { errno = EPROTO; break; }
-					if(iter == msr_buffer.end()) continue; if(*iter < '0' or *iter > '?') { errno = EPROTO; break; }
+					compare_position(iter, msr_buffer, isescape);
+					compare_position(iter, msr_buffer, isstatus);
 
-					char status = *iter++;
+					char status = *std::prev(iter);
 
 					msr_buffer.erase(msr_buffer.begin(), iter);
 
@@ -353,8 +362,18 @@ namespace jank {
 	}
 
 	bool msr::read(std::string& track1, std::string& track2, std::string& track3) {
+		std::string data;
+		auto retval = read(data);
+		std::cout << "RETURN=" << (retval ? "TRUE" : "FALSE") << " DATA=" << hex(data.c_str(), data.length()) << std::endl;
+		//
+		// parse data
+		//
+		return retval;
+	}
 
-		const char cmd[] = { '\33', 'r' };
+	bool msr::read(std::string& data) {
+
+		const char cmd[] = { '\033', 'r' };
 
 		message("READ");
 
@@ -367,30 +386,25 @@ namespace jank {
 
 			compare_position(iter, msr_buffer, isescape);
 			compare_position(iter, msr_buffer, is('s'));
-			compare_position(iter, msr_buffer, isescape);
-			compare_position(iter, msr_buffer, is('\1'));
 
-			track1.clear();
+			auto data_end = iter;
 
-			while(iter != msr_buffer.end() and *iter != '\33')
-					track1.push_back(*iter++);
+			for(; data_end != msr_buffer.end(); data_end++) {
+				auto jter = data_end;
+				compare_position_nf(jter, msr_buffer, is('?'));
+				compare_position_nf(jter, msr_buffer, is('\034'));
+				compare_position_nf(jter, msr_buffer, isescape);
+				compare_position_nf(jter, msr_buffer, isstatus);
+				break;
+			}
 
-			compare_position(iter, msr_buffer, isescape);
-			compare_position(iter, msr_buffer, is('\2'));
+			if(data_end == msr_buffer.end())
+				continue;
 
-			track2.clear();
+			while(iter != data_end)
+				data.push_back(*iter++);
 
-			while(iter != msr_buffer.end() and *iter >= '0' and *iter <= '?')
-					track2.push_back(*iter++);
-
-			compare_position(iter, msr_buffer, isescape);
-			compare_position(iter, msr_buffer, is('\3'));
-
-			track3.clear();
-
-			while(iter != msr_buffer.end() and *iter != '\34')
-					track3.push_back(*iter++);
-
+			compare_position(iter, msr_buffer, is('?'));
 			compare_position(iter, msr_buffer, is('\34'));
 			compare_position(iter, msr_buffer, isescape);
 			compare_position(iter, msr_buffer, isstatus);
@@ -436,7 +450,7 @@ namespace jank {
 
 	char msr::model() {
 
-			const char cmd[] = { '\33', 't' };
+			const char cmd[] = { '\033', 't' };
 
 			message("MODEL");
 
@@ -452,7 +466,7 @@ namespace jank {
 
 					char ch;
 
-					if(iter == msr_buffer.end()) continue; if(*iter != '\33') { errno = EPROTO; break; } else iter++;
+					if(iter == msr_buffer.end()) continue; if(*iter != '\033') { errno = EPROTO; break; } else iter++;
 					if(iter == msr_buffer.end()) continue; if(not isdigit(*iter)) { errno = EPROTO; break; } else ch = *iter++;
 					if(iter == msr_buffer.end()) continue; if(*iter != 'S') { errno = EPROTO; break; } else iter++;
 
@@ -477,7 +491,7 @@ namespace jank {
 
 	const char *msr::firmware() {
 
-			const char cmd[] = { '\33', 'v' };
+			const char cmd[] = { '\033', 'v' };
 
 			message("FIRMWARE");
 
@@ -493,7 +507,7 @@ namespace jank {
 
 					std::string s;
 
-					if(iter == msr_buffer.end()) continue; if(*iter != '\33') { errno = EPROTO; break; } else iter++;
+					if(iter == msr_buffer.end()) continue; if(*iter != '\033') { errno = EPROTO; break; } else iter++;
 					if(iter == msr_buffer.end()) continue; if(*iter != 'R') { errno = EPROTO; break; } else s.push_back(*iter++);
 					if(iter == msr_buffer.end()) continue; if(*iter != 'E') { errno = EPROTO; break; } else s.push_back(*iter++);
 					if(iter == msr_buffer.end()) continue; if(*iter != 'V') { errno = EPROTO; break; } else s.push_back(*iter++);
@@ -616,12 +630,34 @@ namespace jank {
 
 	std::string msr::hex(const char *s, size_t sz) const {
 
+		const std::string underline = "\033[4m";
+		const std::string bold = "\033[1m";
+		const std::string reset = "\033[0m";
+
 		std::stringstream ss;
 
 		ss << "char s[" << std::dec << sz << "] = {";
 
-		for(unsigned int n = 0; n < sz; n++)
-			ss << ' ' << std::hex << std::setfill('0') << std::setw(2) << (int)s[n];
+		for(unsigned int n = 0; n < sz; n++) {
+			char c = s[n];
+			if(false) {
+				// NOP
+			} else if(c == '\034') {
+				ss << bold << "[FS]" << reset;
+			} else if(c >= 0 and c <= 27) {
+				ss << bold << '^' << (char)(c + '@') << reset;
+			} else if(c == '\0') {
+				ss << bold << "[NUL]" << reset;
+			} else if(c == '\033') {
+				ss << bold << "[ESC]" << reset;
+			} else if(ispunct(c)) {
+				ss << c;
+			} else if(isalnum(c)) {
+				ss << c;
+			} else {
+				ss << bold << std::hex << std::setfill('0') << std::setw(2) << (int)c << reset;
+			}
+		}
 
 		ss << " };";
 

@@ -52,6 +52,7 @@ namespace jank {
 			bool erase();
 
 			bool read(std::string&, std::string&, std::string&);
+			bool read(std::string&);
 			bool write(const std::string&, const std::string&, const std::string&);
 
 			bool cancel();
