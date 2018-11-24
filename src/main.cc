@@ -314,49 +314,56 @@ int main(int argc, char **argv) {
 
 						} else if(strcasecmp(line, "READ") == 0) {
 
-								int n = 0;
+							int n = 0;
 
-								std::string track1;
-								std::string track2;
-								std::string track3;
+							std::string track1;
+							std::string track2;
+							std::string track3;
 
-								std::cout << "/batch-read/" << std::endl;
+							std::cout << "/batch-read/" << std::endl;
 
-								for(;;) {
+							for(;;) {
 
-										std::cout << "[" << ++n << "] swipe card or press <ENTER> to stop." << std::endl;
+								std::cout << "[" << ++n << "] swipe card or press <ENTER> to stop." << std::endl;
 
-										if(msr.read(track1, track2, track3)) {
+								if(msr.read(track1, track2, track3)) {
 
-												std::cout << "track1: " << track1 << std::endl;
-												std::cout << "track2: " << track2 << std::endl;
-												std::cout << "track3: " << track3 << std::endl;
+									std::cout << "track1: " << track1 << std::endl;
+									std::cout << "track2: " << track2 << std::endl;
+									std::cout << "track3: " << track3 << std::endl;
 
-										} else {
+								} else {
 
-												perror("READ");
+									perror("READ");
 
-												if(errno == ECANCELED)
-														break;
-										}
-
-										msleep(500);
+									if(errno == ECANCELED)
+										break;
 								}
+
+								msleep(500);
+							}
 						} else if(strcasecmp(line, "HICO") == 0) {
-								msr.set_hico();
+							msr.set_hico();
 						} else if(strcasecmp(line, "LOCO") == 0) {
-								msr.set_loco();
+							msr.set_loco();
 						} else if(strcasecmp(line, "CO?") == 0) {
-								std::cout << "/get-coercivity/" << std::endl;
-								if(msr.is_hico()) std::cout << "HICO" << std::endl;
-								if(msr.is_loco()) std::cout << "LOCO" << std::endl;
+							std::cout << "/get-coercivity/" << std::endl;
+							if(msr.is_hico()) std::cout << "HICO" << std::endl;
+							if(msr.is_loco()) std::cout << "LOCO" << std::endl;
+						} else if(strcasecmp(line, "RED") == 0) {
+							msr.red();
+						} else if(strcasecmp(line, "YELLOW") == 0) {
+							msr.yellow();
+						} else if(strcasecmp(line, "GREEN") == 0) {
+							msr.green();
+						} else if(strcasecmp(line, "ON") == 0) {
+							msr.on();
+						} else if(strcasecmp(line, "OFF") == 0) {
+							msr.off();
 						} else if(strcasecmp(line, "RESET") == 0) {
-
-								msr.reset();
-
+							msr.reset();
 						} else if(strcasecmp(line, "QUIT") == 0) {
-
-								done = true;
+							done = true;
 						}
 
 						free(line);

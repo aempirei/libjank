@@ -235,19 +235,19 @@ namespace jank {
 	}
 
 	bool msr::set_hico() {
-		return writen(ESC "x", 2) == 2;
+		return expect(ESC "x", 2, ESC "0", 2);
 	}
 
 	bool msr::set_loco() {
-		return writen(ESC "y", 2) == 2;
+		return expect(ESC "y", 2, ESC "0", 2);
 	}
 
 	bool msr::is_hico() {
-		return expect(ESC "d", 2, ESC "H", 2);
+		return expect(ESC "d", 2, ESC "h", 2);
 	}
 
 	bool msr::is_loco() {
-		return expect(ESC "d", 2, ESC "L", 2);
+		return expect(ESC "d", 2, ESC "l", 2);
 	}
 
 	bool msr::test_comm() const {
@@ -554,6 +554,8 @@ namespace jank {
 			return false;
 		}
 
+		std::cout << "EXPECT RESPONSE : " << hex(buf, n) << std::endl;
+
 		bool X = memncmp(buf, n, rx, rx_sz) == 0;
 
 		delete[] buf;
@@ -636,7 +638,7 @@ namespace jank {
 
 		std::stringstream ss;
 
-		ss << "char s[" << std::dec << sz << "] = {";
+		ss << "char s[" << std::dec << sz << "] = { ";
 
 		for(unsigned int n = 0; n < sz; n++) {
 			char c = s[n];
