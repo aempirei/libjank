@@ -21,6 +21,11 @@ namespace jank {
 			const static pattern_type<2> fail;
 			const static pattern_type<2> ack;
 	};
+	
+	struct track {
+			const static std::string empty;
+			const static std::string error;
+	};
 
 	class msr {
 
