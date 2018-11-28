@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <regex>
 
 #include <cstring>
 #include <cctype>
@@ -362,12 +363,29 @@ namespace jank {
 	}
 
 	bool msr::read(std::string& track1, std::string& track2, std::string& track3) {
+		std::cmatch cm;
 		std::string data;
 		auto retval = read(data);
+
 		std::cout << "RETURN=" << (retval ? "TRUE" : "FALSE") << " DATA=" << hex(data.c_str(), data.length()) << std::endl;
-		//
-		// parse data
-		//
+
+		std::regex e("^\\x1b\\x01(.*)(.)(.)");
+		// std::regex e("^\\x1b\\ca(.*)\\x1b\\cb(.*)\\x1b\\cc(.*)");
+
+		std::regex_match(data.c_str(), cm, e);
+
+		std::cout << "REGEX_MATCH := ( CM.SIZE() = " << cm.size() << " )" << std::endl;
+
+		for(size_t n = 0; n < cm.size(); n++) {
+			std::cout << "match " << n << "(" << cm.length(n) << ")" << " := " << hex(cm.str(n).c_str(), (int)cm.length(n)) << std::endl;
+		}
+
+		if(cm.size() == 4) {
+			track1 = std::string(cm[1], cm.length(1));
+			track2 = std::string(cm[2], cm.length(2));
+			track3 = std::string(cm[3], cm.length(3));
+		}
+
 		return retval;
 	}
 
