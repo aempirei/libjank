@@ -44,6 +44,9 @@ namespace jank {
 	const pattern_type<2> response::fail = { { '\033', 'A' } };
 	const pattern_type<2> response::ack = { { '\033', 'y' } };
 
+	const std::string track::empty = "\033+";
+	const std::string track::error = "\033*";
+
 	template <class T, class U> std::pair<bool,typename T::iterator> begins_with(T& a, const U& b) {
 
 		auto iter = a.begin();
@@ -369,8 +372,7 @@ namespace jank {
 
 		std::cout << "RETURN=" << (retval ? "TRUE" : "FALSE") << " DATA=" << hex(data.c_str(), data.length()) << std::endl;
 
-		std::regex e("^\\x1b\\x01(.*)(.)(.)");
-		// std::regex e("^\\x1b\\ca(.*)\\x1b\\cb(.*)\\x1b\\cc(.*)");
+		std::regex e("^\\x1b\\x01(.*)\\x1b\\x02(.*)\\x1b\\x03(.*)");
 
 		std::regex_match(data.c_str(), cm, e);
 
