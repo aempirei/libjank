@@ -25,6 +25,7 @@ namespace jank {
 	struct track {
 			const static std::string empty;
 			const static std::string error;
+			static std::string status(const std::string&);
 	};
 
 	class msr {
@@ -107,5 +108,6 @@ namespace jank {
 			int memncmp(const void *, size_t, const void *, size_t) const;
 
 			std::string hex(const char *, size_t) const;
+			std::string hex(const std::string&) const;
 	};
 }

@@ -47,6 +47,10 @@ namespace jank {
 	const std::string track::empty = "\033+";
 	const std::string track::error = "\033*";
 
+	std::string track::status(const std::string& s) {
+		return s == empty ? "EMPTY" : s == error ? "ERROR" : "OK";
+	}
+
 	template <class T, class U> std::pair<bool,typename T::iterator> begins_with(T& a, const U& b) {
 
 		auto iter = a.begin();
@@ -370,7 +374,7 @@ namespace jank {
 		std::string data;
 		auto retval = read(data);
 
-		std::cout << "RETURN=" << (retval ? "TRUE" : "FALSE") << " DATA=" << hex(data.c_str(), data.length()) << std::endl;
+		std::cout << "RETURN=" << (retval ? "TRUE" : "FALSE") << " DATA=" << hex(data) << std::endl;
 
 		std::regex e("^\\x1b\\x01(.*)\\x1b\\x02(.*)\\x1b\\x03(.*)");
 
@@ -379,13 +383,13 @@ namespace jank {
 		std::cout << "REGEX_MATCH := ( CM.SIZE() = " << cm.size() << " )" << std::endl;
 
 		for(size_t n = 0; n < cm.size(); n++) {
-			std::cout << "match " << n << "(" << cm.length(n) << ")" << " := " << hex(cm.str(n).c_str(), (int)cm.length(n)) << std::endl;
+			std::cout << "match " << n << "(" << cm.length(n) << ")" << " := " << hex(cm.str(n)) << std::endl;
 		}
 
 		if(cm.size() == 4) {
-			track1 = std::string(cm[1], cm.length(1));
-			track2 = std::string(cm[2], cm.length(2));
-			track3 = std::string(cm[3], cm.length(3));
+			track1 = std::string(cm.str(1).c_str(), cm.length(1));
+			track2 = std::string(cm.str(2).c_str(), cm.length(2));
+			track3 = std::string(cm.str(3).c_str(), cm.length(3));
 		}
 
 		return retval;
@@ -648,6 +652,10 @@ namespace jank {
 		}
 
 		return done;
+	}
+
+	std::string msr::hex(const std::string& s) const {
+		return hex(s.c_str(), s.length());
 	}
 
 	std::string msr::hex(const char *s, size_t sz) const {

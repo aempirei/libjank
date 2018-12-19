@@ -273,9 +273,13 @@ int main(int argc, char **argv) {
 
 										if(msr.read(track1, track2, track3)) {
 
-												std::cout << "track1: " << track1 << std::endl;
-												std::cout << "track2: " << track2 << std::endl;
-												std::cout << "track3: " << track3 << std::endl;
+												auto p = [](int n, const std::string& s) { 
+													std::cout << "track" << n << " (" << jank::track::status(s) << ") " << s << std::endl;
+												};
+
+												p(1, track1);
+												p(2, track2);
+												p(3, track3);
 
 												if(not track1.empty() and track1.front() == '%' and track1.back() == '?')
 														track1 = track1.substr(1, std::string::npos);
@@ -326,19 +330,21 @@ int main(int argc, char **argv) {
 
 								std::cout << "[" << ++n << "] swipe card or press <ENTER> to stop." << std::endl;
 
-								if(msr.read(track1, track2, track3)) {
-
-									std::cout << "track1: " << track1 << std::endl;
-									std::cout << "track2: " << track2 << std::endl;
-									std::cout << "track3: " << track3 << std::endl;
-
-								} else {
+								if(!msr.read(track1, track2, track3)) {
 
 									perror("READ");
 
 									if(errno == ECANCELED)
 										break;
 								}
+
+								auto p = [](int n, const std::string& s) { 
+									std::cout << "track" << n << " (" << jank::track::status(s) << ") " << s << std::endl;
+								};
+
+								p(1, track1);
+								p(2, track2);
+								p(3, track3);
 
 								msleep(500);
 							}
