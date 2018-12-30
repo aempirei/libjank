@@ -374,17 +374,19 @@ namespace jank {
 		std::string data;
 		auto retval = read(data);
 
-		std::cout << "RETURN=" << (retval ? "TRUE" : "FALSE") << " DATA=" << hex(data) << std::endl;
+		if(false)
+			std::cout << "RETURN=" << (retval ? "TRUE" : "FALSE") << " DATA=" << hex(data) << std::endl;
 
 		std::regex e("^\\x1b\\x01(.*)\\x1b\\x02(.*)\\x1b\\x03(.*)");
 
 		std::regex_match(data.c_str(), cm, e);
 
-		std::cout << "REGEX_MATCH := ( CM.SIZE() = " << cm.size() << " )" << std::endl;
+		if(false)
+			std::cout << "REGEX_MATCH := ( CM.SIZE() = " << cm.size() << " )" << std::endl;
 
-		for(size_t n = 0; n < cm.size(); n++) {
-			std::cout << "match " << n << "(" << cm.length(n) << ")" << " := " << hex(cm.str(n)) << std::endl;
-		}
+		if(false)
+			for(size_t n = 0; n < cm.size(); n++)
+				std::cout << "MATCH " << n << "(" << cm.length(n) << ")" << " := " << hex(cm.str(n)) << std::endl;
 
 		if(cm.size() == 4) {
 			track1 = std::string(cm.str(1).c_str(), cm.length(1));

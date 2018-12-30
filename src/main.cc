@@ -316,6 +316,27 @@ int main(int argc, char **argv) {
 										msleep(500);
 								}
 
+						} else if(strcasecmp(line, "TRACK2") == 0) {
+							int n = 0;
+							std::string cin_line;
+							std::string track2;
+							std::cout << "/batch-write-track2/" << std::endl;
+							for(;;) {
+								std::getline(std::cin, cin_line);
+								if(std::cin.eof())
+									break;
+								for(auto iter = cin_line.begin(); iter != cin_line.end(); iter++)
+									if(!isspace(*iter))
+										track2 += *iter;
+								std::cout << "[" << ++n << "] track2 = " << track2 << std::endl;
+								std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
+								if(!msr.write("", track2, "")) {
+									perror("WRITE");
+									if(errno == ECANCELED)
+										break;
+								}
+								msleep(500);
+							}
 						} else if(strcasecmp(line, "READ") == 0) {
 
 							int n = 0;
