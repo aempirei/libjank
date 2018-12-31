@@ -329,9 +329,11 @@ namespace jank {
 
 			std::stringstream ss;
 
-			ss << "\033w\033s\033\1" << track1 << "\033\2" << track2 << "\033\3" << track3 << "?\034\033\x30";
+			ss << "\033w\033s\033\1" << track1 << "\033\2" << track2 << "\033\3" << track3 << "\034\033\x30";
 
 			std::string cmd = ss.str();
+
+			std::cout << "WRITE DATA=" << hex(cmd) << std::endl;
 
 			if(writen(cmd.c_str(), cmd.length()) != (ssize_t)cmd.length())
 					return false;
