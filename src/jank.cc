@@ -51,6 +51,10 @@ namespace jank {
 		return s == empty ? "EMPTY" : s == error ? "ERROR" : "OK";
 	}
 
+	bool track::is_ok(const std::string& s) {
+		return s != empty && s != error;
+	}
+
 	template <class T, class U> std::pair<bool,typename T::iterator> begins_with(T& a, const U& b) {
 
 		auto iter = a.begin();
@@ -375,6 +379,10 @@ namespace jank {
 		std::cmatch cm;
 		std::string data;
 		auto retval = read(data);
+
+		track1 = jank::track::empty;
+		track2 = jank::track::empty;
+		track3 = jank::track::empty;
 
 		if(false)
 			std::cout << "RETURN=" << (retval ? "TRUE" : "FALSE") << " DATA=" << hex(data) << std::endl;

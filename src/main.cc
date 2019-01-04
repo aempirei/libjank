@@ -102,6 +102,7 @@ volatile sig_atomic_t done = false;
 void signal_handler(int);
 void exit_handler();
 void flash(const jank::msr&, int, int);
+void print_track(unsigned int, const std::string&);
 
 int main(int argc, char **argv) {
 
@@ -273,13 +274,9 @@ int main(int argc, char **argv) {
 
 										if(msr.read(track1, track2, track3)) {
 
-												auto p = [](int n, const std::string& s) { 
-													std::cout << "track" << n << " (" << jank::track::status(s) << ") " << s << std::endl;
-												};
-
-												p(1, track1);
-												p(2, track2);
-												p(3, track3);
+												print_track(1, track1);
+												print_track(2, track2);
+												print_track(3, track3);
 
 												if(not track1.empty() and track1.front() == '%' and track1.back() == '?')
 														track1 = track1.substr(1, std::string::npos);
@@ -349,7 +346,7 @@ int main(int argc, char **argv) {
 
 							for(;;) {
 
-								std::cout << "[" << ++n << "] swipe card or press <ENTER> to stop." << std::endl;
+								std::cout << '[' << (++n) << "] swipe card or press <ENTER> to stop." << std::endl;
 
 								if(!msr.read(track1, track2, track3)) {
 
@@ -359,13 +356,9 @@ int main(int argc, char **argv) {
 										break;
 								}
 
-								auto p = [](int n, const std::string& s) { 
-									std::cout << "track" << n << " (" << jank::track::status(s) << ") " << s << std::endl;
-								};
-
-								p(1, track1);
-								p(2, track2);
-								p(3, track3);
+								print_track(1, track1);
+								print_track(2, track2);
+								print_track(3, track3);
 
 								msleep(500);
 							}
@@ -398,6 +391,13 @@ int main(int argc, char **argv) {
 		}
 
 		return EXIT_SUCCESS;
+}
+
+void print_track(unsigned int no, const std::string& track) {
+	std::cout << "track" << no << " (" << jank::track::status(track) << ')';
+	if(jank::track::is_ok(track))
+		std::cout << ' ' << track;
+	std::cout << std::endl;
 }
 
 void flash(const jank::msr& msr, int n, int ms) {

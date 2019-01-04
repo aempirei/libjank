@@ -26,6 +26,7 @@ namespace jank {
 			const static std::string empty;
 			const static std::string error;
 			static std::string status(const std::string&);
+			static bool is_ok(const std::string&);
 	};
 
 	class msr {
