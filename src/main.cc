@@ -258,6 +258,27 @@ int main(int argc, char **argv) {
 
 								perror("ERASE");
 
+						} else if(strncasecmp(line, "WRITE", 5) == 0) {
+							char tr[3][128] = { "", "", "" };
+							if(
+									(sscanf(line, " %*s \"%[^\"]\" \"%[^\"]\" \"%[^\"]\" ", tr[0], tr[1], tr[2]) == 3) ||
+									(sscanf(line, " %*s \"%[^\"]\" \"%[^\"]\" - ", tr[0], tr[1]) == 2) ||
+									(sscanf(line, " %*s \"%[^\"]\" - \"%[^\"]\" ", tr[0], tr[2]) == 2) ||
+									(sscanf(line, " %*s - \"%[^\"]\" \"%[^\"]\" ", tr[1], tr[2]) == 2) ||
+									(sscanf(line, " %*s \"%[^\"]\" - - ", tr[0]) == 1) ||
+									(sscanf(line, " %*s - \"%[^\"]\" - ", tr[1]) == 1) ||
+									(sscanf(line, " %*s - - \"%[^\"]\" ", tr[2]) == 1)
+							  ) {
+								for(unsigned int no = 1; no <= 3; no++)
+									print_track(no, tr[no-1]);
+								std::cout << "swipe write card or press <ENTER> to cancel." << std::endl;
+
+								msleep(500);
+												
+								if(!msr.write(tr[0], tr[1], tr[2]))
+									perror("WRITE");
+							} else
+								perror("WRITE");
 						} else if(strcasecmp(line, "COPY") == 0) {
 
 								bool done = false;
@@ -326,7 +347,7 @@ int main(int argc, char **argv) {
 										*p = '\0';
 									std::cout << "[" << ++n << "] track2 = " << track2 << std::endl;
 									std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
-									if(!msr.write(jank::track::empty, std::string(";") + track2 + "?", jank::track::empty)) {
+									if(!msr.write("", track2, "")) {
 										perror("WRITE");
 										if(errno == ECANCELED)
 											break;
