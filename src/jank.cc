@@ -331,9 +331,21 @@ namespace jank {
 
 			message("WRITE");
 
+			std::string t1(track1);
+			std::string t2(track2);
+			std::string t3(track3);
+
+			if(t1 == jank::track::empty) t1.clear();
+			if(t2 == jank::track::empty) t2.clear();
+			if(t3 == jank::track::empty) t3.clear();
+
+			if(not t1.empty() and t1.back() != '?') t1.push_back('?');
+			if(not t2.empty() and t2.back() != '?') t2.push_back('?');
+			if(not t3.empty() and t3.back() != '?') t3.push_back('?');
+
 			std::stringstream ss;
 
-			ss << "\033w\033s\033\1" << track1 << "\033\2" << track2 << "\033\3" << track3 << "\034\033\x30";
+			ss << "\033w\033s\033\1" << t1 << "\033\2" << t2 << "\033\3" << t3 << "\034\033\x30";
 
 			std::string cmd = ss.str();
 

@@ -336,23 +336,34 @@ int main(int argc, char **argv) {
 
 						} else if(strncasecmp(line, "TRACK2", 6) == 0) {
 							int n = 0;
-							char fn[64];
-							if(sscanf(line, "%*s %63s ", fn) == 1) {
+							char fn[128];
+							if(sscanf(line, "%*s %127s ", fn) == 1) {
 								FILE *f = fopen(fn, "r");
-								char track2[64];
-								std::cout << "/batch-write-track2/" << std::endl;
-								while(fgets(track2, sizeof(track2) - 1, f) != NULL) {
-									char *p;
-									if((p = strpbrk(track2, " \r\n")))
-										*p = '\0';
-									std::cout << "[" << ++n << "] track2 = " << track2 << std::endl;
-									std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
-									if(!msr.write("", track2, "")) {
-										perror("WRITE");
-										if(errno == ECANCELED)
-											break;
+								if(f == NULL) {
+									perror("fopen()");
+								} else {
+									bool done = false;
+									char track2[128];
+									std::cout << "/batch-write-track2/" << std::endl;
+									while(not done and fgets(track2, sizeof(track2) - 1, f) != NULL) {
+										char *p;
+										if((p = strpbrk(track2, " \r\n")))
+											*p = '\0';
+										std::cout << "[" << ++n << "] track2 = " << track2 << std::endl;
+										std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
+										while(!msr.write("", track2, "")) {
+											auto en = errno;
+											perror("WRITE");
+											msr.flush();
+											errno = en;
+											if(errno == ECANCELED) {
+												done = true;
+												break;
+											}
+											std::cout << "[" << n << "] retry, swipe card or press <ENTER> to stop." << std::endl;
+										}
+										msleep(500);
 									}
-									msleep(500);
 								}
 							}
 						} else if(strcasecmp(line, "READ") == 0) {

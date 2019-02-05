@@ -1,6 +1,6 @@
 CXX = g++
 CPPFLAGS = -Isrc
-CXXFLAGS = -Wall -pedantic -std=gnu++11 -O2 -Wno-unused-result -Wno-misleading-indentation
+CXXFLAGS = -Wall -pedantic -std=gnu++11 -O2 -Wno-unused-result -Wno-misleading-indentation -ggdb
 LIBFLAGS = -Llib -ljank -lreadline
 TARGETS = lib/libjank.a bin/jank
 INSTALL_PATH = /usr/local
