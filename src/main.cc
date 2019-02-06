@@ -339,7 +339,10 @@ int main(int argc, char **argv) {
 			} else if(strncasecmp(line, "TRACK2", 6) == 0) {
 				int n = 0;
 				char fn[256];
-				if(sscanf(line, "%*s %255s ", fn) == 1) {
+				int first_n = 1;
+				int k = sscanf(line, "%*s %255s %d", fn, &first_n);
+
+				if(k > 0) {
 					FILE *f = fopen(fn, "r");
 					if(f == NULL) {
 						perror("fopen()");
@@ -356,40 +359,45 @@ int main(int argc, char **argv) {
 							while (not cancel and std::regex_search (s,m,e)) {
 								auto track2 = m.str();
 
-								std::cout << "[" << ++n << "] track2 = " << track2 << std::endl;
-								std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
-								while(!msr.write("", track2, "")) {
-									auto en = errno;
-									perror("WRITE");
-									msr.flush();
-									errno = en;
-									if(errno == ECANCELED) {
-										cancel = true;
-										break;
-									} else {
-										char sra[16];
-										char ch = 'A'; // default to abort.
-
-										do {
-											std::cout << "(S)kip, (R)etry, (A)bort ? " << std::flush;
-										}  while(fgets(sra, sizeof(sra) - 1, stdin) != NULL and strchr("SRA", ch = toupper(*sra)) == NULL);
-
-										if(ch == 'S') {
-											std::cout << "OK, SKIPPING..." << std::endl;
-											break;
-										} else if(ch == 'R') {
-											std::cout << "OK, RETRYING..." << std::endl;
-										} else if(ch == 'A') {
-											std::cout << "OK, ABORTING..." << std::endl;
+								std::cout << "[" << ++n << "] track2 = " << track2;
+								if(n < first_n) {
+									std::cout << " : skipping" << std::endl;
+								} else {
+									std::cout << std::endl;
+									std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
+									while(!msr.write("", track2, "")) {
+										auto en = errno;
+										perror("WRITE");
+										msr.flush();
+										errno = en;
+										if(errno == ECANCELED) {
 											cancel = true;
 											break;
+										} else {
+											char sra[16];
+											char ch = 'A'; // default to abort.
+
+											do {
+												std::cout << "(S)kip, (R)etry, (A)bort ? " << std::flush;
+											}  while(fgets(sra, sizeof(sra) - 1, stdin) != NULL and strchr("SRA", ch = toupper(*sra)) == NULL);
+
+											if(ch == 'S') {
+												std::cout << "OK, SKIPPING..." << std::endl;
+												break;
+											} else if(ch == 'R') {
+												std::cout << "OK, RETRYING..." << std::endl;
+											} else if(ch == 'A') {
+												std::cout << "OK, ABORTING..." << std::endl;
+												cancel = true;
+												break;
+											}
 										}
+										std::cout << "[" << n << "] retry, swipe card or press <ENTER> to stop." << std::endl;
+										msleep(500);
 									}
-									std::cout << "[" << n << "] retry, swipe card or press <ENTER> to stop." << std::endl;
+
 									msleep(500);
 								}
-
-								msleep(500);
 								s = m.suffix().str();
 							}
 						}
