@@ -349,7 +349,9 @@ namespace jank {
 
 			std::string cmd = ss.str();
 
-			std::cout << "WRITE DATA=" << hex(cmd) << std::endl;
+			std::stringstream msg;
+			msg << "DATA : " << hex(cmd);
+			message(msg.str().c_str());
 
 			if(writen(cmd.c_str(), cmd.length()) != (ssize_t)cmd.length())
 					return false;
