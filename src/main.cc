@@ -337,22 +337,22 @@ int main(int argc, char **argv) {
 
 						} else if(strncasecmp(line, "TRACK2", 6) == 0) {
 							int n = 0;
-							char fn[128];
-							if(sscanf(line, "%*s %127s ", fn) == 1) {
+							char fn[256];
+							if(sscanf(line, "%*s %255s ", fn) == 1) {
 								FILE *f = fopen(fn, "r");
 								if(f == NULL) {
 									perror("fopen()");
 								} else {
-									bool done = false;
+									bool cancelled = false;
 									char fileline[256];
 									std::cout << "/batch-write-track2/" << std::endl;
-									while(not done and fgets(fileline, sizeof(fileline) - 1, f) != NULL) {
+									while(not cancelled and fgets(fileline, sizeof(fileline) - 1, f) != NULL) {
 
 										std::string s(fileline);
 										std::smatch m;
 										std::regex e ("\\b\\d{15,19}=\\d{4,60}\\b");
 
-										if (std::regex_search (s,m,e)) {
+										while (not cancelled and std::regex_search (s,m,e)) {
 											for (auto track2:m) {
 
 												std::cout << "[" << ++n << "] track2 = " << track2 << std::endl;
@@ -364,7 +364,7 @@ int main(int argc, char **argv) {
 													errno = en;
 													if(errno != ENOMEDIUM) { 
 														// if(errno == ECANCELED) {
-														done = true;
+														cancelled = true;
 														break;
 													}
 													std::cout << "[" << n << "] retry, swipe card or press <ENTER> to stop." << std::endl;
@@ -372,6 +372,7 @@ int main(int argc, char **argv) {
 													msleep(500);
 												}
 											}
+											s = m.suffix().str();
 										}
 								}
 							}
