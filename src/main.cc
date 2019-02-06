@@ -5,6 +5,7 @@
 #include <regex>
 
 #include <cstring>
+#include <cctype>
 #include <cstdio>
 
 #include <sys/types.h>
@@ -362,9 +363,27 @@ int main(int argc, char **argv) {
 									perror("WRITE");
 									msr.flush();
 									errno = en;
-									if(errno != ENOMEDIUM or errno == ECANCELED) { 
+									if(errno == ECANCELED) {
 										cancel = true;
 										break;
+									} else {
+										char sra[16];
+										char ch = 'A'; // default to abort.
+
+										do {
+											std::cout << "(S)kip, (R)etry, (A)bort ? " << std::flush;
+										}  while(fgets(sra, sizeof(sra) - 1, stdin) != NULL and strchr("SRA", ch = toupper(*sra)) == NULL);
+
+										if(ch == 'S') {
+											std::cout << "OK, SKIPPING..." << std::endl;
+											break;
+										} else if(ch == 'R') {
+											std::cout << "OK, RETRYING..." << std::endl;
+										} else if(ch == 'A') {
+											std::cout << "OK, ABORTING..." << std::endl;
+											cancel = true;
+											break;
+										}
 									}
 									std::cout << "[" << n << "] retry, swipe card or press <ENTER> to stop." << std::endl;
 									msleep(500);
