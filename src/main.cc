@@ -352,7 +352,7 @@ int main(int argc, char **argv) {
 										std::smatch m;
 										std::regex e ("\\b\\d{15,19}=\\d{4,60}\\b");
 
-										while (not done and std::regex_search (s,m,e)) {
+										if (std::regex_search (s,m,e)) {
 											for (auto track2:m) {
 
 												std::cout << "[" << ++n << "] track2 = " << track2 << std::endl;
