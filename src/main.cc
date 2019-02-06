@@ -2,6 +2,7 @@
 #include <sstream>
 #include <string>
 #include <iomanip>
+#include <regex>
 
 #include <cstring>
 #include <cstdio>
@@ -343,27 +344,35 @@ int main(int argc, char **argv) {
 									perror("fopen()");
 								} else {
 									bool done = false;
-									char track2[128];
+									char fileline[256];
 									std::cout << "/batch-write-track2/" << std::endl;
-									while(not done and fgets(track2, sizeof(track2) - 1, f) != NULL) {
-										char *p;
-										if((p = strpbrk(track2, " \r\n")))
-											*p = '\0';
-										std::cout << "[" << ++n << "] track2 = " << track2 << std::endl;
-										std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
-										while(!msr.write("", track2, "")) {
-											auto en = errno;
-											perror("WRITE");
-											msr.flush();
-											errno = en;
-											if(errno == ECANCELED) {
-												done = true;
-												break;
+									while(not done and fgets(fileline, sizeof(fileline) - 1, f) != NULL) {
+
+										std::string s(fileline);
+										std::smatch m;
+										std::regex e ("\\b\\d{15,19}=\\d{4,60}\\b");
+
+										while (std::regex_search (s,m,e)) {
+											for (auto track2:m) {
+
+												std::cout << "[" << ++n << "] track2 = " << track2 << std::endl;
+												std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
+												while(!msr.write("", track2, "")) {
+													auto en = errno;
+													perror("WRITE");
+													msr.flush();
+													errno = en;
+													if(errno != ENOMEDIUM) { 
+														// if(errno == ECANCELED) {
+														done = true;
+														break;
+													}
+													std::cout << "[" << n << "] retry, swipe card or press <ENTER> to stop." << std::endl;
+													}
+													msleep(500);
+												}
 											}
-											std::cout << "[" << n << "] retry, swipe card or press <ENTER> to stop." << std::endl;
 										}
-										msleep(500);
-									}
 								}
 							}
 						} else if(strcasecmp(line, "READ") == 0) {
