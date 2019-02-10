@@ -379,7 +379,7 @@ int main(int argc, char **argv) {
 
 											do {
 												std::cout << "(S)kip, (R)etry, (C)ycle, (A)bort ? " << std::flush;
-											}  while(fgets(sra, sizeof(sra) - 1, stdin) != NULL and strchr("SRA", ch = toupper(*sra)) == NULL);
+											}  while(fgets(sra, sizeof(sra) - 1, stdin) != NULL and strchr("SCRA", ch = toupper(*sra)) == NULL);
 
 											if(ch == 'S') {
 												std::cout << "OK, SKIPPING..." << std::endl;
