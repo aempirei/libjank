@@ -378,12 +378,20 @@ int main(int argc, char **argv) {
 											char ch = 'A'; // default to abort.
 
 											do {
-												std::cout << "(S)kip, (R)etry, (A)bort ? " << std::flush;
+												std::cout << "(S)kip, (R)etry, (C)ycle, (A)bort ? " << std::flush;
 											}  while(fgets(sra, sizeof(sra) - 1, stdin) != NULL and strchr("SRA", ch = toupper(*sra)) == NULL);
 
 											if(ch == 'S') {
 												std::cout << "OK, SKIPPING..." << std::endl;
 												break;
+											} else if(ch == 'C') {
+												std::cout << "OK, CYCLING..." << std::endl;
+												msr.stop();
+												if(msr.start(config::device, oob_fd, msg_fd) == false) {
+													std::cerr << "failed to cycle device " << config::device << ": ";
+													std::cerr << strerror(errno) << std::endl;
+													return EXIT_FAILURE;
+												}
 											} else if(ch == 'R') {
 												std::cout << "OK, RETRYING..." << std::endl;
 											} else if(ch == 'A') {
