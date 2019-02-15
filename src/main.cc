@@ -3,6 +3,7 @@
 #include <string>
 #include <iomanip>
 #include <regex>
+#include <list>
 
 #include <cstring>
 #include <cctype>
@@ -29,9 +30,9 @@ namespace config {
 	bool detect = false;
 	bool led = false;
 
-	const char *glob = "/dev/ttyUSB*";
-	const char *device = "/dev/ttyUSB0";
-	// const char *device = "/dev/msr605";
+	std::list<std::string> device_formats = { "/dev/ttyUSB%u", "/dev/rfcomm%u" };
+	char device_buffer[256];
+	const char *device = nullptr;
 
 	int argc;
 	char **argv;
@@ -53,10 +54,10 @@ namespace config {
 		std::cout << "\t-D          toggle MSR-605 device detection mode (default=" << (detect  ? "ENABLED" : "DISABLED") << ")" << std::endl;
 		std::cout << "\t-L          toggle LED flashing mode (default="             << (led     ? "ENABLED" : "DISABLED") << ")" << std::endl;
 
-		std::cout << "\t-d device   filename of MSR-605 device";
-
-		if(device != nullptr)
-			std::cout << " (default=" << device << ")";
+		std::cout << "\t-d device   filename of MSR-605 device" << std::endl;
+		std::cout << "\t            default device filename search patterns:";
+		for(auto fmt : device_formats)
+			std::cout << ' ' << fmt;
 
 		std::cout << std::endl;
 
@@ -73,6 +74,7 @@ namespace config {
 	bool parse() {
 
 		int opt;
+		struct stat sb;
 
 		while((opt = getopt(argc, argv, "hvitcDLd:")) != -1) {
 
@@ -95,6 +97,20 @@ namespace config {
 			}
 		}
 
+		if(device == nullptr) {
+			for(auto fmt : device_formats) {
+				for(int index = 0; index < 10; index++) {
+					snprintf(device_buffer, sizeof(device_buffer), fmt.c_str(), index);
+					if(stat(device_buffer, &sb) == 0) {
+						device = device_buffer;
+						break;
+					}
+				}
+				if(device != nullptr)
+					break;
+			}
+		}
+
 		return true;
 	}
 }
@@ -105,6 +121,10 @@ void signal_handler(int);
 void exit_handler();
 void flash(const jank::msr&, int, int);
 void print_track(unsigned int, const std::string&);
+
+bool write1();
+bool read1();
+bool erase1();
 
 int main(int argc, char **argv) {
 
@@ -125,7 +145,7 @@ int main(int argc, char **argv) {
 	}
 
 	if(config::device == nullptr) {
-		std::cerr << "msr device filename not specified (use -d flag)" << std::endl;
+		std::cerr << "msr device filename not found (specify using -d flag)" << std::endl;
 		return EXIT_FAILURE;
 	}
 
@@ -157,7 +177,6 @@ int main(int argc, char **argv) {
 		std::cout << "info="    << ( config::info    ? "ENABLED" : "DISABLED" ) << std::endl;
 		std::cout << "cli="     << ( config::cli     ? "ENABLED" : "DISABLED" ) << std::endl;
 
-		std::cout << "glob="   << config::glob   << std::endl;
 		std::cout << "device=" << config::device << std::endl;
 	}
 
