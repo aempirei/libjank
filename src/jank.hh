@@ -31,9 +31,9 @@ namespace jank {
 
 	class msr {
 
-		static std::string msr_strerror(int errnum);
-
 		public:
+
+			static std::string msr_strerror(int errnum);
 
 			using buffer_type = std::list<char>;
 

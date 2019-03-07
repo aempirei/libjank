@@ -297,7 +297,7 @@ int main(int argc, char **argv) {
 					msleep(500);
 
 					if(!msr.write(tr[0], tr[1], tr[2]))
-						perror("WRITE");
+						std::cout << "msr::write error: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
 				} else
 					perror("WRITE");
 			} else if(strcasecmp(line, "COPY") == 0) {
@@ -335,7 +335,7 @@ int main(int argc, char **argv) {
 
 							} else {
 
-								perror("WRITE");
+								std::cout << "msr::write error: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
 
 								if(errno == ECANCELED or errno == EINVAL)
 									break;
@@ -346,7 +346,7 @@ int main(int argc, char **argv) {
 
 					} else {
 
-						perror("READ");
+						std::cout << "msr::read error: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
 
 						if(errno == ECANCELED)
 							break;
@@ -386,7 +386,7 @@ int main(int argc, char **argv) {
 									std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
 									while(!msr.write("", track2, "")) {
 										auto en = errno;
-										perror("WRITE");
+										std::cout << "msr::write error: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
 										msr.flush();
 										errno = en;
 										if(errno == ECANCELED) {
@@ -446,7 +446,7 @@ int main(int argc, char **argv) {
 
 					if(!msr.read(track1, track2, track3)) {
 
-						perror("READ");
+						std::cout << "msr::read error: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
 
 						if(errno == ECANCELED)
 							break;
