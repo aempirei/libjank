@@ -296,10 +296,12 @@ int main(int argc, char **argv) {
 
 					msleep(500);
 
-					if(!msr.write(tr[0], tr[1], tr[2]))
-						std::cout << "msr::write error: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
-				} else
-					perror("WRITE");
+					if(!msr.write(tr[0], tr[1], tr[2])) {
+						std::cerr << "msr::write :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
+					}
+				} 
+
 			} else if(strcasecmp(line, "COPY") == 0) {
 
 				bool done = false;
@@ -335,7 +337,8 @@ int main(int argc, char **argv) {
 
 							} else {
 
-								std::cout << "msr::write error: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+								std::cerr << "msr::write :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+								std::cerr << "sys. error :: " << strerror(errno) << std::endl;
 
 								if(errno == ECANCELED or errno == EINVAL)
 									break;
@@ -346,7 +349,8 @@ int main(int argc, char **argv) {
 
 					} else {
 
-						std::cout << "msr::read error: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+						std::cerr << "msr::read  :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
 
 						if(errno == ECANCELED)
 							break;
@@ -386,7 +390,8 @@ int main(int argc, char **argv) {
 									std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
 									while(!msr.write("", track2, "")) {
 										auto en = errno;
-										std::cout << "msr::write error: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+										std::cerr << "msr::write :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+										std::cerr << "sys. error :: " << strerror(errno) << std::endl;
 										msr.flush();
 										errno = en;
 										if(errno == ECANCELED) {
@@ -446,7 +451,8 @@ int main(int argc, char **argv) {
 
 					if(!msr.read(track1, track2, track3)) {
 
-						std::cout << "msr::read error: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+						std::cerr << "msr::read  :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
 
 						if(errno == ECANCELED)
 							break;
