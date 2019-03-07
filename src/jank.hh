@@ -31,6 +31,8 @@ namespace jank {
 
 	class msr {
 
+		static std::string msr_strerror(int errnum);
+
 		public:
 
 			using buffer_type = std::list<char>;
@@ -40,6 +42,8 @@ namespace jank {
 			std::string device;
 
 			long sync_timeout;
+			
+			int msr_errno;
 
 			bool start(const char *, int, int);
 			bool stop();

@@ -66,8 +66,7 @@ namespace jank {
 		return std::make_pair(jter == b.cend(), iter);
 	}
 
-
-	msr::msr() : active(false), sync_timeout(30) {
+	msr::msr() : active(false), sync_timeout(30), msr_errno(0) {
 			memset(&cache, 0, sizeof(cache));
 	}
 
@@ -94,12 +93,14 @@ namespace jank {
 
 		msr_fd = open(device.c_str(), O_RDWR | O_NOCTTY);
 		if(msr_fd == -1)
-			return false;
+			goto failure;
 
 		tcgetattr(msr_fd, &options);
 
-		cfsetispeed(&options, B9600);
-		cfsetospeed(&options, B9600);
+		if(cfsetispeed(&options, 0) == -1)
+			goto failure;
+		if(cfsetospeed(&options, B9600) == -1)
+			goto failure;
 
 		options.c_cflag |= (CLOCAL | CREAD);
 
@@ -115,16 +116,20 @@ namespace jank {
 
 		options.c_oflag &= ~OPOST;
 
-		if(tcsetattr(msr_fd, TCSANOW, &options) == -1) {
-			int e = errno;
-			close(msr_fd);
-			errno = e;
-			return false;
-		}
+		if(tcsetattr(msr_fd, TCSANOW, &options) == -1)
+			goto failure;
 
 		active = true;
 
 		return true;
+
+	failure:
+		if(msr_fd != -1) {
+			int e = errno;
+			close(msr_fd);
+			errno = e;
+		}
+		return false;
 	}
 
 	bool msr::sync() {
@@ -321,10 +326,23 @@ namespace jank {
 
 		msleep(250);
 
-		if(reset() and flush())
-			errno = e;
+		reset();
+		flush();
+
+		errno = e;
 
 		return false;
+	}
+
+	std::string msr::msr_strerror(int errnum) {
+		switch(errnum) {
+			case 0: return "command ok";
+			case 1: return "read/write error";
+			case 2: return "command format error";
+			case 4: return "invalid command";
+			case 9: return "invalid card swipe";
+		}
+		return "unknown error";
 	}
 
 	bool msr::write(const std::string& track1, const std::string& track2, const std::string& track3) {
@@ -367,13 +385,10 @@ namespace jank {
 
 					msr_buffer.erase(msr_buffer.begin(), iter);
 
-					switch(status) {
-							case '0': return true;
-							case '1': errno = EIO; break;
-							case '2': errno = EINVAL; break;
-							case '4': errno = ENOTSUP; break;
-							case '9': errno = ENOMEDIUM; break;
-					}
+					msr_errno = (int)(status - '0');
+
+					if(status == '0')
+						return true;
 
 					break;
 			}
@@ -382,8 +397,10 @@ namespace jank {
 
 			msleep(250);
 
-			if(reset() and flush())
-					errno = e;
+			reset();
+			flush();
+
+			errno = e;
 
 			return false;
 
@@ -463,12 +480,10 @@ namespace jank {
 
 			msr_buffer.erase(msr_buffer.begin(), iter);
 
-			switch(status) {
-					case '0': return true;
-					case '1': errno = EIO; break;
-					case '2': errno = EINVAL; break;
-					case '4': errno = ENOTSUP; break;
-			}
+			msr_errno = (int)(status - '0');
+
+			if(status == '0')
+				return true;
 
 			break;
 		}
@@ -477,8 +492,10 @@ namespace jank {
 
 		msleep(250);
 
-		if(reset() and flush())
-			errno = e;
+		reset();
+		flush();
+
+		errno = e;
 
 		return false;
 	}
@@ -533,8 +550,10 @@ namespace jank {
 
 			msleep(250);
 
-			if(reset() and flush())
-					errno = e;
+			reset();
+			flush();
+
+			errno = e;
 
 			return '\0';
 	}
