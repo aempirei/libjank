@@ -381,6 +381,7 @@ int main(int argc, char **argv) {
 
 							while (not cancel and std::regex_search (s,m,e)) {
 								auto track2 = m.str();
+								char default_choice = '\0';
 
 								std::cout << "[" << ++n << "] track2 = " << track2;
 								if(n < first_n) {
@@ -398,28 +399,23 @@ int main(int argc, char **argv) {
 											cancel = true;
 											break;
 										} else {
-											char sra[16];
-											char ch = 'A'; // default to abort.
+											char sre[16];
+											char choice = default_choice;
 
-											do {
-												std::cout << "(S)kip, (R)etry, (C)ycle, (A)bort ? " << std::flush;
-											}  while(fgets(sra, sizeof(sra) - 1, stdin) != NULL and strchr("SCRA", ch = toupper(*sra)) == NULL);
+											if(!choice) do {
+												std::cout << "(s)kip, (S)kip all, (r)etry, (R)etry all, (e/E)nd ? " << std::flush;
+											}  while(fgets(sre, sizeof(sre) - 1, stdin) != NULL and strchr("SRE", choice = toupper(*sre)) == NULL);
 
-											if(ch == 'S') {
+											if(choice == *sre)
+												default_choice = choice;
+
+											if(choice == 'S') {
 												std::cout << "OK, SKIPPING..." << std::endl;
 												break;
-											} else if(ch == 'C') {
-												std::cout << "OK, CYCLING..." << std::endl;
-												msr.stop();
-												if(msr.start(config::device, oob_fd, msg_fd) == false) {
-													std::cerr << "failed to cycle device " << config::device << ": ";
-													std::cerr << strerror(errno) << std::endl;
-													return EXIT_FAILURE;
-												}
-											} else if(ch == 'R') {
+											} else if(choice == 'R') {
 												std::cout << "OK, RETRYING..." << std::endl;
-											} else if(ch == 'A') {
-												std::cout << "OK, ABORTING..." << std::endl;
+											} else if(choice == 'E') {
+												std::cout << "OK, ENDING..." << std::endl;
 												cancel = true;
 												break;
 											}
