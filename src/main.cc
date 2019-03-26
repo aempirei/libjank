@@ -372,6 +372,7 @@ int main(int argc, char **argv) {
 					} else {
 						bool cancel = false;
 						char fileline[256];
+						char default_choice = '\0';
 						std::cout << "/batch-write-track2/" << std::endl;
 						while(not cancel and fgets(fileline, sizeof(fileline) - 1, f) != NULL) {
 
@@ -381,7 +382,6 @@ int main(int argc, char **argv) {
 
 							while (not cancel and std::regex_search (s,m,e)) {
 								auto track2 = m.str();
-								char default_choice = '\0';
 
 								std::cout << "[" << ++n << "] track2 = " << track2;
 								if(n < first_n) {
