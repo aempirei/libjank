@@ -30,6 +30,14 @@ namespace config {
 	bool detect = false;
 	bool led = false;
 
+	namespace runtime {
+		bool autoretry = false;
+	}
+
+	const bool& toggle(bool& option) {
+		return ( option = !option );
+	}
+
 	std::list<std::string> device_formats = { "/dev/ttyUSB%u", "/dev/rfcomm%u" };
 	char device_buffer[256];
 	const char *device = nullptr;
@@ -359,7 +367,7 @@ int main(int argc, char **argv) {
 					msleep(500);
 				}
 
-			} else if(strncasecmp(line, "TRACK2", 6) == 0) {
+			} else if(strncasecmp(line, "TRACK2", 6) == 0 || strncasecmp(line, "T2", 6) == 0) {
 				int n = 0;
 				char fn[256];
 				int first_n = 1;
@@ -372,7 +380,7 @@ int main(int argc, char **argv) {
 					} else {
 						bool cancel = false;
 						char fileline[256];
-						char default_choice = '\0';
+						char default_choice = config::runtime::autoretry ? 'R' : '\0';
 						std::cout << "/batch-write-track2/" << std::endl;
 						while(not cancel and fgets(fileline, sizeof(fileline) - 1, f) != NULL) {
 
@@ -482,6 +490,8 @@ int main(int argc, char **argv) {
 				msr.reset();
 			} else if(strcasecmp(line, "QUIT") == 0) {
 				done = true;
+			} else if(strcasecmp(line, "AUTORETRY") == 0) {
+				std::cout << "AUTORETRY " << (config::toggle(config::runtime::autoretry) ? "ON" : "OFF") << std::endl;
 			}
 
 			free(line);
