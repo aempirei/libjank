@@ -134,6 +134,11 @@ bool write1();
 bool read1();
 bool erase1();
 
+int prefixmatch(const char *s, const char *p) {
+	size_t n = strlen(p);
+	return strncasecmp(s,p,n) == 0 && (s[n] == '\0' || s[n] == ' ' || s[n] == '\t');
+}
+
 int main(int argc, char **argv) {
 
 	auto& msr = config::msr;
@@ -260,7 +265,7 @@ int main(int argc, char **argv) {
 
 		while(not done and (line = readline(prompt)) != nullptr) {
 
-			if(strncasecmp(line, "ERASE", 5) == 0) {
+			if(prefixmatch(line, "ERASE")) {
 
 				int t1, t2, t3;
 
@@ -287,7 +292,7 @@ int main(int argc, char **argv) {
 
 				perror("ERASE");
 
-			} else if(strncasecmp(line, "WRITE", 5) == 0) {
+			} else if(prefixmatch(line, "WRITE")) {
 				char tr[3][128] = { "", "", "" };
 				if(
 						(sscanf(line, " %*s \"%[^\"]\" \"%[^\"]\" \"%[^\"]\" ", tr[0], tr[1], tr[2]) == 3) ||
@@ -310,7 +315,7 @@ int main(int argc, char **argv) {
 					}
 				} 
 
-			} else if(strcasecmp(line, "COPY") == 0) {
+			} else if(prefixmatch(line, "COPY")) {
 
 				bool done = false;
 
@@ -367,7 +372,7 @@ int main(int argc, char **argv) {
 					msleep(500);
 				}
 
-			} else if(strncasecmp(line, "TRACK2", 6) == 0 || strncasecmp(line, "T2", 6) == 0) {
+			} else if(prefixmatch(line, "TRACK2") || prefixmatch(line, "T2")) {
 				int n = 0;
 				char fn[256];
 				int first_n = 1;
@@ -439,7 +444,7 @@ int main(int argc, char **argv) {
 						}
 					}
 				}
-			} else if(strcasecmp(line, "READ") == 0) {
+			} else if(prefixmatch(line, "READ")) {
 
 				int n = 0;
 
@@ -468,29 +473,29 @@ int main(int argc, char **argv) {
 
 					msleep(500);
 				}
-			} else if(strcasecmp(line, "HICO") == 0) {
+			} else if(prefixmatch(line, "HICO")) {
 				msr.set_hico();
-			} else if(strcasecmp(line, "LOCO") == 0) {
+			} else if(prefixmatch(line, "LOCO")) {
 				msr.set_loco();
 			} else if(strcasecmp(line, "CO?") == 0) {
 				std::cout << "/get-coercivity/" << std::endl;
 				if(msr.is_hico()) std::cout << "HICO" << std::endl;
 				if(msr.is_loco()) std::cout << "LOCO" << std::endl;
-			} else if(strcasecmp(line, "RED") == 0) {
+			} else if(prefixmatch(line, "RED")) {
 				msr.red();
-			} else if(strcasecmp(line, "YELLOW") == 0) {
+			} else if(prefixmatch(line, "YELLOW")) {
 				msr.yellow();
-			} else if(strcasecmp(line, "GREEN") == 0) {
+			} else if(prefixmatch(line, "GREEN")) {
 				msr.green();
-			} else if(strcasecmp(line, "ON") == 0) {
+			} else if(prefixmatch(line, "ON")) {
 				msr.on();
-			} else if(strcasecmp(line, "OFF") == 0) {
+			} else if(prefixmatch(line, "OFF")) {
 				msr.off();
-			} else if(strcasecmp(line, "RESET") == 0) {
+			} else if(prefixmatch(line, "RESET")) {
 				msr.reset();
-			} else if(strcasecmp(line, "QUIT") == 0) {
+			} else if(prefixmatch(line, "QUIT")) {
 				done = true;
-			} else if(strcasecmp(line, "AUTORETRY") == 0) {
+			} else if(prefixmatch(line, "AUTORETRY")) {
 				std::cout << "AUTORETRY " << (config::toggle(config::runtime::autoretry) ? "ON" : "OFF") << std::endl;
 			}
 
