@@ -495,7 +495,7 @@ int main(int argc, char **argv) {
 				msr.reset();
 			} else if(prefixmatch(line, "QUIT")) {
 				done = true;
-			} else if(prefixmatch(line, "AUTORETRY")) {
+			} else if(prefixmatch(line, "AUTORETRY") || prefixmatch(line, "AUTO")) {
 				std::cout << "AUTORETRY " << (config::toggle(config::runtime::autoretry) ? "ON" : "OFF") << std::endl;
 			}
 
