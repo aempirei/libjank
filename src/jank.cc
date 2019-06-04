@@ -363,7 +363,7 @@ namespace jank {
 
 			std::stringstream ss;
 
-			ss << "\033w\033s\033\1" << t1 << "\033\2" << t2 << "\033\3" << t3 << "\034\033\x30";
+			ss << "\033w\033s\033\1" << t1 << "\033\2" << t2 << "\033\3" << t3 << "\x3f\x1c";
 
 			std::string cmd = ss.str();
 
