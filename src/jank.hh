@@ -64,6 +64,8 @@ namespace jank {
 
 			bool read(std::string&, std::string&, std::string&);
 			bool read(std::string&);
+			bool rawrd(std::string&, std::string&, std::string&);
+			bool rawrd(std::basic_string<unsigned char>&);
 			bool write(const std::string&, const std::string&, const std::string&);
 
 			bool cancel();
@@ -111,7 +113,7 @@ namespace jank {
 			ssize_t writen(const void *, size_t) const;
 			ssize_t readn(void *, size_t) const;
 			int memncmp(const void *, size_t, const void *, size_t) const;
-
+public:
 			std::string hex(const char *, size_t) const;
 			std::string hex(const std::string&) const;
 	};

@@ -17,21 +17,21 @@
 #define ESC "\033"
 
 #define compare_position(I,B,R)	\
-				\
+	\
 	if((I)==(B).end())	\
-		continue;	\
+	continue;			\
 	if(not(R(*(I)))) {	\
 		errno = EPROTO;	\
-		break;		\
-	}			\
+		break;			\
+	}					\
 	(I)++
 
 #define compare_position_nf(I,B,R)	\
-					\
-	if((I)==(B).end())		\
-		continue;		\
-	if(not(R(*(I))))		\
-		continue;		\
+	\
+	if((I)==(B).end())	\
+	continue;			\
+	if(not(R(*(I))))	\
+	continue;			\
 	(I)++
 
 #define is(L)		(L) ==
@@ -405,6 +405,30 @@ namespace jank {
 			return false;
 
 	}
+	bool msr::rawrd(std::string& track1, std::string& track2, std::string& track3) {
+		std::smatch sm;
+		std::basic_string<unsigned char> data;
+		auto retval = rawrd(data);
+		std::string *tracks[] = { nullptr, &track1, &track2, &track3 };
+
+		unsigned int n = 0;
+		int seen = 0;
+
+		for(int track_no = 1; track_no <= 3; track_no++) {
+			auto& track = *tracks[track_no];
+			int len;
+			if(data[n++] == '\033' and data[n++] == track_no && (len = data[n++]) > 0) {
+				seen++;
+				track = "";
+				while(len--)
+					track.push_back(data[n++]);
+			}
+		}
+
+		std::cout << "SEEN := " << seen << std::endl;
+
+		return retval;
+	}
 
 	bool msr::read(std::string& track1, std::string& track2, std::string& track3) {
 		std::cmatch cm;
@@ -415,19 +439,16 @@ namespace jank {
 		track2 = jank::track::empty;
 		track3 = jank::track::empty;
 
-		if(false)
 			std::cout << "RETURN=" << (retval ? "TRUE" : "FALSE") << " DATA=" << hex(data) << std::endl;
 
 		std::regex e("^\\x1b\\x01(.*)\\x1b\\x02(.*)\\x1b\\x03(.*)");
 
 		std::regex_match(data.c_str(), cm, e);
 
-		if(false)
-			std::cout << "REGEX_MATCH := ( CM.SIZE() = " << cm.size() << " )" << std::endl;
+		std::cout << "REGEX_MATCH := ( CM.SIZE() = " << cm.size() << " )" << std::endl;
 
-		if(false)
-			for(size_t n = 0; n < cm.size(); n++)
-				std::cout << "MATCH " << n << "(" << cm.length(n) << ")" << " := " << hex(cm.str(n)) << std::endl;
+		for(size_t n = 0; n < cm.size(); n++)
+			std::cout << "MATCH " << n << "(" << cm.length(n) << ")" << " := " << hex(cm.str(n)) << std::endl;
 
 		if(cm.size() == 4) {
 			track1 = std::string(cm.str(1).c_str(), cm.length(1));
@@ -437,6 +458,68 @@ namespace jank {
 
 		return retval;
 	}
+	bool msr::rawrd(std::basic_string<unsigned char>& data) {
+
+		const char cmd[] = { '\033', 'm' };
+
+		message("RAWREAD");
+
+		if(writen(cmd, sizeof(cmd)) != sizeof(cmd))
+			return false;
+
+		while(sync() and not cancel()) {
+
+			auto iter = msr_buffer.begin();
+
+			compare_position(iter, msr_buffer, isescape);
+			compare_position(iter, msr_buffer, is('s'));
+
+			auto data_end = iter;
+
+			for(; data_end != msr_buffer.end(); data_end++) {
+				auto jter = data_end;
+				compare_position_nf(jter, msr_buffer, is('?'));
+				compare_position_nf(jter, msr_buffer, is('\034'));
+				compare_position_nf(jter, msr_buffer, isescape);
+				compare_position_nf(jter, msr_buffer, isstatus);
+				break;
+			}
+
+			if(data_end == msr_buffer.end())
+				continue;
+
+			while(iter != data_end)
+				data.push_back(*iter++);
+
+			compare_position(iter, msr_buffer, is('?'));
+			compare_position(iter, msr_buffer, is('\34'));
+			compare_position(iter, msr_buffer, isescape);
+			compare_position(iter, msr_buffer, isstatus);
+
+			char status = *std::prev(iter);
+
+			msr_buffer.erase(msr_buffer.begin(), iter);
+
+			msr_errno = (int)(status - '0');
+
+			if(status == '0')
+				return true;
+
+			break;
+		}
+
+		int e = errno;
+
+		msleep(250);
+
+		reset();
+		flush();
+
+		errno = e;
+
+		return false;
+	}
+
 
 	bool msr::read(std::string& data) {
 
@@ -714,7 +797,7 @@ namespace jank {
 		ss << "char s[" << std::dec << sz << "] = { ";
 
 		for(unsigned int n = 0; n < sz; n++) {
-			char c = s[n];
+			unsigned char c = (unsigned char)s[n];
 			if(false) {
 				// NOP
 			} else if(c == '\034') {

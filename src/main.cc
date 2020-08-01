@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <regex>
 #include <list>
+#include <algorithm>
 
 #include <cstring>
 #include <cctype>
@@ -135,6 +136,8 @@ void signal_handler(int);
 void exit_handler();
 void flash(const jank::msr&, int, int);
 void print_track(unsigned int, const std::string&);
+void print_nbit(unsigned int, const std::string&, int);
+int charcount(const std::string&, char);
 
 bool write1();
 bool read1();
@@ -489,6 +492,44 @@ int main(int argc, char **argv) {
 
 					msleep(500);
 				}
+			} else if(prefixmatch(line, "RAWRD")) {
+
+				int t1, t2, t3;
+
+				if(sscanf(line, " %*s %d %d %d ", &t1, &t2, &t3) != 3) {
+					t1 = 7;
+					t2 = 5;
+					t3 = 5;
+				}
+
+				int n = 0;
+
+				std::string track1;
+				std::string track2;
+				std::string track3;
+
+				std::cout << "/batch-rawrd-" << t1 << t2 << t3 << "/" << std::endl;
+
+				for(;;) {
+
+					std::cout << '[' << (++n) << "] swipe card or press <ENTER> to stop." << std::endl;
+
+					if(!msr.rawrd(track1, track2, track3)) {
+
+						std::cerr << "msr::rawrd :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
+
+						if(errno == ECANCELED)
+							break;
+					}
+
+					if(not track1.empty()) print_nbit(1, track1, t1);
+					if(not track2.empty()) print_nbit(2, track2, t2);
+					if(not track3.empty()) print_nbit(3, track3, t3);
+
+					msleep(500);
+				}
+
 			} else if(prefixmatch(line, "HICO")) {
 				msr.set_hico();
 			} else if(prefixmatch(line, "LOCO")) {
@@ -520,6 +561,48 @@ int main(int argc, char **argv) {
 	}
 
 	return EXIT_SUCCESS;
+}
+std::string binary(const std::string& s) {
+	std::string t;
+	for(int i = 0; i < (int)s.length(); i++) {
+		unsigned char ch = (unsigned char)s[i];
+		for(int b = 7; b >= 0; b--)
+			t.push_back(ch & (1 << b) ? '1' : '0');
+	}
+
+	return t;
+}
+
+int charcount(const std::string& s, char ch) {
+	int num = 0;
+	for(char ds : s)
+		if(ds == ch)
+			num++;
+	return num;
+}
+
+void print_nbit(unsigned int track_no, const std::string& track, int num_bits) {
+	auto bits = binary(track);
+	std::cout << "track" << track_no << " (" << jank::track::status(track) << ") :: " << std::dec << ((int)track.length()) << ' ' << num_bits <<"-bit symbols :=";
+	if(jank::track::is_ok(track)) {
+		while(not bits.empty()) {
+			int min_bits = std::min(num_bits, (int)bits.length());
+			auto front = bits.substr(0, min_bits);
+			bits = bits.substr(min_bits, std::string::npos);
+			int parity0 = front.back() - '0';
+			front.pop_back();
+			std::reverse(front.begin(), front.end());
+			int parity1 = charcount(front,'1') & 1 ? 0 : 1;
+			int val = stoul(front, nullptr, 2);
+			char ch = val + (num_bits == 5 ? '0' : ' ');
+			if(parity0 == parity1)
+				std::cout << ch;
+			else
+				std::cout  << " \033[31m" << ch << "\033[0m";
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
 }
 
 void print_track(unsigned int no, const std::string& track) {
