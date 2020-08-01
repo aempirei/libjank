@@ -29,6 +29,8 @@ namespace config {
 	bool cli = false;
 	bool detect = false;
 	bool led = false;
+	bool autoretry = false;
+	bool loco = false;
 
 	namespace runtime {
 		bool autoretry = false;
@@ -55,12 +57,14 @@ namespace config {
 
 		std::cout << "\t-h          show this help" << std::endl;
 
-		std::cout << "\t-t          toggle test mode (default="                     << (test    ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-v          toggle verbose mode (default="                  << (verbose ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-i          toggle info mode (default="                     << (info    ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-c          toggle command-line mode (default="             << (cli     ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-D          toggle MSR-605 device detection mode (default=" << (detect  ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-L          toggle LED flashing mode (default="             << (led     ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-t          toggle test mode (default="                     << (test      ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-v          toggle verbose mode (default="                  << (verbose   ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-i          toggle info mode (default="                     << (info      ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-c          toggle command-line mode (default="             << (cli       ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-D          toggle MSR-605 device detection mode (default=" << (detect    ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-L          toggle LED flashing mode (default="             << (led       ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-l          toggle LO-CO mode (default="                    << (loco      ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-a          toggle auto-retry mode (default="               << (autoretry ? "ENABLED" : "DISABLED") << ")" << std::endl;
 
 		std::cout << "\t-d device   filename of MSR-605 device" << std::endl;
 		std::cout << "\t            default device filename search patterns:";
@@ -84,7 +88,7 @@ namespace config {
 		int opt;
 		struct stat sb;
 
-		while((opt = getopt(argc, argv, "hvitcDLd:")) != -1) {
+		while((opt = getopt(argc, argv, "hvilatcDLd:")) != -1) {
 
 			switch(opt) {
 
@@ -94,6 +98,8 @@ namespace config {
 				case 'c': cli     = not cli     ; break;
 				case 'D': detect  = not detect  ; break;
 				case 'L': led     = not led     ; break;
+				case 'l': loco	  = not loco    ; break;
+				case 'a': autoretry = not autoretry ; break;
 
 				case 'd':
 					  device = optarg;
@@ -184,11 +190,13 @@ int main(int argc, char **argv) {
 
 	if(config::verbose) {
 
-		std::cout << "verbose=" << ( config::verbose ? "ENABLED" : "DISABLED" ) << std::endl;
-		std::cout << "detect="  << ( config::detect  ? "ENABLED" : "DISABLED" ) << std::endl;
-		std::cout << "test="    << ( config::test    ? "ENABLED" : "DISABLED" ) << std::endl;
-		std::cout << "info="    << ( config::info    ? "ENABLED" : "DISABLED" ) << std::endl;
-		std::cout << "cli="     << ( config::cli     ? "ENABLED" : "DISABLED" ) << std::endl;
+		std::cout << "verbose="   << ( config::verbose   ? "ENABLED" : "DISABLED" ) << std::endl;
+		std::cout << "detect="    << ( config::detect    ? "ENABLED" : "DISABLED" ) << std::endl;
+		std::cout << "test="      << ( config::test      ? "ENABLED" : "DISABLED" ) << std::endl;
+		std::cout << "info="      << ( config::info      ? "ENABLED" : "DISABLED" ) << std::endl;
+		std::cout << "cli="       << ( config::cli       ? "ENABLED" : "DISABLED" ) << std::endl;
+		std::cout << "autoretry=" << ( config::autoretry ? "ENABLED" : "DISABLED" ) << std::endl;
+		std::cout << "loco="      << ( config::loco      ? "ENABLED" : "DISABLED" ) << std::endl;
 
 		std::cout << "device=" << config::device << std::endl;
 	}
@@ -253,6 +261,14 @@ int main(int argc, char **argv) {
 		std::cout << "comm-test: "   << (msr.test_comm  () ? "PASS" : "FAIL") << std::endl;
 		std::cout << "RAM-test: "    << (msr.test_ram   () ? "PASS" : "FAIL") << std::endl;
 	}
+
+	if(config::loco) {
+		msr.set_loco();
+	} else {
+		msr.set_hico();
+	}
+
+	config::runtime::autoretry = config::autoretry;
 
 	if(config::cli) {
 
