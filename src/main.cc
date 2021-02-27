@@ -311,6 +311,55 @@ int main(int argc, char **argv) {
 
 				perror("ERASE");
 
+			} else if(prefixmatch(line, "T12")) {
+
+				char tr[3][128] = { "", "", "" };
+
+				if(sscanf(line, " %*s \"%[^\"]\" \"%[^\"]\"", tr[0], tr[1]) == 2)  {
+
+					for(unsigned int no = 1; no <= 3; no++)
+						print_track(no, tr[no-1]);
+
+					std::cout << "swipe to write track1 or press <ENTER> to cancel." << std::endl;
+
+					msleep(500);
+
+					if(!msr.write(tr[0], "", "")) {
+						std::cerr << "msr::write :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
+					}
+
+					std::cout << "swipe to write track2 or press <ENTER> to cancel." << std::endl;
+
+					msleep(500);
+
+					if(!msr.write("", tr[1], "")) {
+						std::cerr << "msr::write :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
+					}
+
+					std::cout << "swipe to read card or press <ENTER> to cancel." << std::endl;
+
+					msleep(500);
+
+					std::string track1;
+					std::string track2;
+					std::string track3;
+
+					if(!msr.read(track1, track2, track3)) {
+
+						std::cerr << "msr::read  :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
+
+						if(errno == ECANCELED)
+							break;
+					}
+
+					print_track(1, track1);
+					print_track(2, track2);
+					print_track(3, track3);
+				}
+
 			} else if(prefixmatch(line, "WRITE")) {
 				char tr[3][128] = { "", "", "" };
 				if(
@@ -332,7 +381,7 @@ int main(int argc, char **argv) {
 						std::cerr << "msr::write :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
 						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
 					}
-				} 
+				}
 
 			} else if(prefixmatch(line, "COPY")) {
 
