@@ -313,18 +313,23 @@ int main(int argc, char **argv) {
 
 			} else if(prefixmatch(line, "T12")) {
 
-				char tr[3][128] = { "", "", "" };
+				std::cmatch m[2];
+				std::regex e1 ("\\bB\\d{15,19}\\^[^^]*\\^\\d{4,60}\\b");
+				std::regex e2 ("\\b\\d{15,19}=\\d{4,60}\\b");
 
-				if(sscanf(line, " %*s \"%[^\"]\" \"%[^\"]\"", tr[0], tr[1]) == 2)  {
+				auto r1 = std::regex_search (line,m[0],e1);
+				auto r2 = std::regex_search(line,m[1],e2);
 
-					for(unsigned int no = 1; no <= 3; no++)
-						print_track(no, tr[no-1]);
+				if(r1 and r2)  {
+
+					for(unsigned int no = 1; no <= 2; no++)
+						print_track(no, m[no-1].str());
 
 					std::cout << "swipe to write track1 or press <ENTER> to cancel." << std::endl;
 
 					msleep(500);
 
-					if(!msr.write(tr[0], "", "")) {
+					if(!msr.write(m[0].str(), "", "")) {
 						std::cerr << "msr::write :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
 						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
 					}
@@ -333,7 +338,7 @@ int main(int argc, char **argv) {
 
 					msleep(500);
 
-					if(!msr.write("", tr[1], "")) {
+					if(!msr.write("", m[1].str(), "")) {
 						std::cerr << "msr::write :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
 						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
 					}
