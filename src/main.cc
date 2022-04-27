@@ -148,7 +148,44 @@ int prefixmatch(const char *s, const char *p) {
 	return strncasecmp(s,p,n) == 0 && (s[n] == '\0' || s[n] == ' ' || s[n] == '\t');
 }
 
-int main(int argc, char **argv) {
+bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice) {
+	auto en = errno;
+	std::cerr << "msr::write :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
+	std::cerr << "sys. error :: " << strerror(errno) << std::endl;
+	msr.flush();
+	errno = en;
+	if(errno == ECANCELED) {
+		cancel = true;
+		return false;
+	} else {
+		char sre[16];
+		char choice = default_choice;
+
+		if(!choice) do {
+			std::cout << "(s)kip, (S)kip all, (r)etry, (R)etry all, (e/E)nd ? " << std::flush;
+		}  while(fgets(sre, sizeof(sre) - 1, stdin) != NULL and strchr("SRE", choice = toupper(*sre)) == NULL);
+
+		if(choice == *sre)
+			default_choice = choice;
+
+		if(choice == 'S') {
+			std::cout << "OK, SKIPPING..." << std::endl;
+			return false;
+		} else if(choice == 'R') {
+			std::cout << "OK, RETRYING..." << std::endl;
+		} else if(choice == 'E') {
+			std::cout << "OK, ENDING..." << std::endl;
+			cancel = true;
+			return false;
+		}
+	}
+	std::cout << "[" << n << "] retry, swipe card or press <ENTER> to stop." << std::endl;
+	msleep(500);
+	return true;
+}
+
+
+	int main(int argc, char **argv) {
 
 	auto& msr = config::msr;
 
@@ -391,6 +428,49 @@ int main(int argc, char **argv) {
 					msleep(500);
 				}
 
+			} else if(prefixmatch(line, "T12")) {
+				int n = 0;
+				char fn[256];
+				int first_n = 1;
+				int k = sscanf(line, "%*s %255s %d", fn, &first_n);
+
+				if(k > 0) {
+					FILE *f = fopen(fn, "r");
+					if(f == NULL) {
+						perror("fopen()");
+					} else {
+						bool cancel = false;
+						char fileline[256];
+						char default_choice = config::runtime::autoretry ? 'R' : '\0';
+						std::cout << "/batch-write-track12/" << std::endl;
+						while(not cancel and fgets(fileline, sizeof(fileline) - 1, f) != NULL) {
+
+							std::string s(fileline);
+							auto pos = s.find('\t');
+							std::string t1(s.begin(), s.begin() + pos);
+							std::string t2(s.begin() + pos + 1, s.end() - 1);
+							std::cout << "[" << ++n << "] track1 = " << t1 << " track2 = " << t2;
+							if(n < first_n) {
+								std::cout << " : skipping" << std::endl;
+							} else {
+								std::cout << std::endl;
+								std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
+
+								std::cout << "[" << n << "] swipe for track1 = " << t1 << std::endl;
+								while(not msr.write(t1, "", "") and retryWrite(n,cancel,msr,default_choice));
+								
+								msleep(500);
+
+								if(not cancel) {
+									std::cout << "[" << n << "] swipe for track2 = " << t2 << std::endl;
+									while(not msr.write("", t2, "") and retryWrite(n,cancel,msr,default_choice));
+								}
+
+								msleep(500);
+							}
+						}
+					}
+				}
 			} else if(prefixmatch(line, "TRACK2") || prefixmatch(line, "T2")) {
 				int n = 0;
 				char fn[256];
@@ -420,41 +500,9 @@ int main(int argc, char **argv) {
 									std::cout << " : skipping" << std::endl;
 								} else {
 									std::cout << std::endl;
-									std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
-									while(!msr.write("", track2, "")) {
-										auto en = errno;
-										std::cerr << "msr::write :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
-										std::cerr << "sys. error :: " << strerror(errno) << std::endl;
-										msr.flush();
-										errno = en;
-										if(errno == ECANCELED) {
-											cancel = true;
-											break;
-										} else {
-											char sre[16];
-											char choice = default_choice;
+	 								std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
 
-											if(!choice) do {
-												std::cout << "(s)kip, (S)kip all, (r)etry, (R)etry all, (e/E)nd ? " << std::flush;
-											}  while(fgets(sre, sizeof(sre) - 1, stdin) != NULL and strchr("SRE", choice = toupper(*sre)) == NULL);
-
-											if(choice == *sre)
-												default_choice = choice;
-
-											if(choice == 'S') {
-												std::cout << "OK, SKIPPING..." << std::endl;
-												break;
-											} else if(choice == 'R') {
-												std::cout << "OK, RETRYING..." << std::endl;
-											} else if(choice == 'E') {
-												std::cout << "OK, ENDING..." << std::endl;
-												cancel = true;
-												break;
-											}
-										}
-										std::cout << "[" << n << "] retry, swipe card or press <ENTER> to stop." << std::endl;
-										msleep(500);
-									}
+									while(not msr.write("", track2, "") and retryWrite(n,cancel,msr,default_choice));
 
 									msleep(500);
 								}
