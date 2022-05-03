@@ -481,8 +481,43 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 
 					msleep(500);
 				}
-
 			} else if(prefixmatch(line, "T12")) {
+				int n = 0;
+				char fn[256];
+				int first_n = 1;
+				int k = sscanf(line, "%*s %255s %d", fn, &first_n);
+
+				if(k > 0) {
+					FILE *f = fopen(fn, "r");
+					if(f == NULL) {
+						perror("fopen()");
+					} else {
+						bool cancel = false;
+						char fileline[256];
+						char default_choice = config::runtime::autoretry ? 'R' : '\0';
+						std::cout << "/batch-write-track12/" << std::endl;
+						while(not cancel and fgets(fileline, sizeof(fileline) - 1, f) != NULL) {
+
+							std::string s(fileline);
+							auto pos = s.find('\t');
+							std::string t1(s.begin(), s.begin() + pos);
+							std::string t2(s.begin() + pos + 1, s.end() - 1);
+							std::cout << "[" << ++n << "] track1 = " << t1 << " track2 = " << t2;
+							if(n < first_n) {
+								std::cout << " : skipping" << std::endl;
+							} else {
+								std::cout << std::endl;
+								std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
+
+								while(not msr.write(t1, t2, "") and retryWrite(n,cancel,msr,default_choice));
+								
+								msleep(500);
+							}
+						}
+					}
+				}
+	
+			} else if(prefixmatch(line, "T1T2")) {
 				int n = 0;
 				char fn[256];
 				int first_n = 1;
