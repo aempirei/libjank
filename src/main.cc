@@ -348,60 +348,6 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 
 				perror("ERASE");
 
-			} else if(prefixmatch(line, "T12")) {
-
-				std::cmatch m[2];
-				std::regex e1 ("\\bB\\d{15,19}\\^[^^]*\\^\\d{4,60}\\b");
-				std::regex e2 ("\\b\\d{15,19}=\\d{4,60}\\b");
-
-				auto r1 = std::regex_search (line,m[0],e1);
-				auto r2 = std::regex_search(line,m[1],e2);
-
-				if(r1 and r2)  {
-
-					for(unsigned int no = 1; no <= 2; no++)
-						print_track(no, m[no-1].str());
-
-					std::cout << "swipe to write track1 or press <ENTER> to cancel." << std::endl;
-
-					msleep(500);
-
-					if(!msr.write(m[0].str(), "", "")) {
-						std::cerr << "msr::write :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
-						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
-					}
-
-					std::cout << "swipe to write track2 or press <ENTER> to cancel." << std::endl;
-
-					msleep(500);
-
-					if(!msr.write("", m[1].str(), "")) {
-						std::cerr << "msr::write :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
-						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
-					}
-
-					std::cout << "swipe to read card or press <ENTER> to cancel." << std::endl;
-
-					msleep(500);
-
-					std::string track1;
-					std::string track2;
-					std::string track3;
-
-					if(!msr.read(track1, track2, track3)) {
-
-						std::cerr << "msr::read  :: " << jank::msr::msr_strerror(msr.msr_errno) << std::endl;
-						std::cerr << "sys. error :: " << strerror(errno) << std::endl;
-
-						if(errno == ECANCELED)
-							break;
-					}
-
-					print_track(1, track1);
-					print_track(2, track2);
-					print_track(3, track3);
-				}
-
 			} else if(prefixmatch(line, "WRITE")) {
 				char tr[3][128] = { "", "", "" };
 				if(
