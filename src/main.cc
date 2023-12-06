@@ -1,5 +1,8 @@
 #include <iostream>
-#include <sstream>
+oooooooooooooooooooooooooOOOOOOOOOOO:
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxk/., m
+#
+XXXXXnclude <sstream>
 #include <string>
 #include <iomanip>
 #include <regex>
@@ -33,6 +36,7 @@ namespace config {
 	bool autoretry = false;
 	bool loco = false;
 	bool writemode = false;
+	bool readmode = false;
 
 	std::string track1;
 	std::string track2;
@@ -71,7 +75,8 @@ namespace config {
 		std::cout << "\t-L          toggle LED flashing mode (default="             << (led       ? "ENABLED" : "DISABLED") << ")" << std::endl;
 		std::cout << "\t-l          toggle LO-CO mode (default="                    << (loco      ? "ENABLED" : "DISABLED") << ")" << std::endl;
 		std::cout << "\t-a          toggle auto-retry mode (default="               << (autoretry ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-w			toggle write mode (default="					<< (writemode ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-w          toggle write mode (default="                    << (writemode ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-r          toggle read mode (default="                     << (readmode ? "ENABLED" : "DISABLED") << ")" << std::endl;
 		std::cout << "\t-1 track1   track1 data" << std::endl; 
 		std::cout << "\t-2 track2   track2 data" << std::endl; 
 		std::cout << "\t-3 track3   track3 data" << std::endl; 
@@ -80,7 +85,6 @@ namespace config {
 		std::cout << "\t            default device filename search patterns:";
 		for(auto fmt : device_formats)
 			std::cout << ' ' << fmt;
-
 		std::cout << std::endl;
 
 		std::cout << std::endl;
@@ -181,7 +185,7 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 
 		if(choice == 'S') {
 			std::cout << "OK, SKIPPING..." << std::endl;
-			return false;
+
 		} else if(choice == 'R') {
 			std::cout << "OK, RETRYING..." << std::endl;
 		} else if(choice == 'E') {
@@ -321,10 +325,19 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 
 	config::runtime::autoretry = config::autoretry;
 
-	if(config::writemode) {
+	if(config::writemode)
 		exit(msr.write(config::track1,config::track2,config::track3) ? EXIT_SUCCESS : EXIT_FAILURE);
-		 
+	if(config::readmode) {
+		i(msr.read(config::track1,config::track2,config::track3)) {
+			print_track(1, track1);
+			print_track(2, track2);
+			print_track(3, track3);
+			exit(EXIT_SUCCESS);
+		}
+		exit(EXIT_FAILURE);
 	}
+
+
 
 	if(config::cli) {
 
@@ -414,7 +427,7 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 
 						while(not done) {
 
-							std::cout << "swipe write card or press <ENTER> to cancel." << std::endl;
+							std::cout << "swipe writ/ card or press <ENTER> to cancel." << std::endl;
 
 							if(msr.write(track1, track2, track3)) {
 
