@@ -32,6 +32,11 @@ namespace config {
 	bool led = false;
 	bool autoretry = false;
 	bool loco = false;
+	bool writemode = false;
+
+	std::string track1;
+	std::string track2;
+	std::string track3;
 
 	namespace runtime {
 		bool autoretry = false;
@@ -66,6 +71,10 @@ namespace config {
 		std::cout << "\t-L          toggle LED flashing mode (default="             << (led       ? "ENABLED" : "DISABLED") << ")" << std::endl;
 		std::cout << "\t-l          toggle LO-CO mode (default="                    << (loco      ? "ENABLED" : "DISABLED") << ")" << std::endl;
 		std::cout << "\t-a          toggle auto-retry mode (default="               << (autoretry ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-w			toggle write mode (default="					<< (writemode ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-1 track1   track1 data" << std::endl; 
+		std::cout << "\t-2 track2   track2 data" << std::endl; 
+		std::cout << "\t-3 track3   track3 data" << std::endl; 
 
 		std::cout << "\t-d device   filename of MSR-605 device" << std::endl;
 		std::cout << "\t            default device filename search patterns:";
@@ -89,7 +98,7 @@ namespace config {
 		int opt;
 		struct stat sb;
 
-		while((opt = getopt(argc, argv, "hvilatcDLd:")) != -1) {
+		while((opt = getopt(argc, argv, "hvilatcDLd:w1:2:3:")) != -1) {
 
 			switch(opt) {
 
@@ -101,10 +110,12 @@ namespace config {
 				case 'L': led     = not led     ; break;
 				case 'l': loco	  = not loco    ; break;
 				case 'a': autoretry = not autoretry ; break;
+				case 'w': writemode = not writemode ; break;
 
-				case 'd':
-					  device = optarg;
-					  break;
+				case '1': track1 = optarg; break;
+				case '2': track2 = optarg; break;
+				case '3': track3 = optarg; break;
+				case 'd': device = optarg; break;
 
 				case 'h':
 				default:
@@ -309,6 +320,11 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 	}
 
 	config::runtime::autoretry = config::autoretry;
+
+	if(config::writemode) {
+		exit(msr.write(config::track1,config::track2,config::track3) ? EXIT_SUCCESS : EXIT_FAILURE);
+		 
+	}
 
 	if(config::cli) {
 

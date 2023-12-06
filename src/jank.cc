@@ -706,7 +706,7 @@ namespace jank {
 			return false;
 		}
 
-		std::cout << "EXPECT RESPONSE : " << hex(buf, n) << std::endl;
+		// std::cout << "EXPECT RESPONSE : " << hex(buf, n) << std::endl;
 
 		bool X = memncmp(buf, n, rx, rx_sz) == 0;
 
