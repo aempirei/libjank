@@ -439,16 +439,16 @@ namespace jank {
 		track2 = jank::track::empty;
 		track3 = jank::track::empty;
 
-			std::cout << "RETURN=" << (retval ? "TRUE" : "FALSE") << " DATA=" << hex(data) << std::endl;
+		//std::cout << "RETURN=" << (retval ? "TRUE" : "FALSE") << " DATA=" << hex(data) << std::endl;
 
 		std::regex e("^\\x1b\\x01(.*)\\x1b\\x02(.*)\\x1b\\x03(.*)");
 
 		std::regex_match(data.c_str(), cm, e);
 
-		std::cout << "REGEX_MATCH := ( CM.SIZE() = " << cm.size() << " )" << std::endl;
+		//std::cout << "REGEX_MATCH := ( CM.SIZE() = " << cm.size() << " )" << std::endl;
 
-		for(size_t n = 0; n < cm.size(); n++)
-			std::cout << "MATCH " << n << "(" << cm.length(n) << ")" << " := " << hex(cm.str(n)) << std::endl;
+		//for(size_t n = 0; n < cm.size(); n++)
+		// std::cout << "MATCH " << n << "(" << cm.length(n) << ")" << " := " << hex(cm.str(n)) << std::endl;
 
 		if(cm.size() == 4) {
 			track1 = std::string(cm.str(1).c_str(), cm.length(1));
@@ -456,7 +456,7 @@ namespace jank {
 			track3 = std::string(cm.str(3).c_str(), cm.length(3));
 		}
 
-		return retval;
+		return true;
 	}
 	bool msr::rawrd(std::basic_string<unsigned char>& data) {
 

@@ -1,8 +1,5 @@
 #include <iostream>
-oooooooooooooooooooooooooOOOOOOOOOOO:
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxk/., m
-#
-XXXXXnclude <sstream>
+#include <sstream>
 #include <string>
 #include <iomanip>
 #include <regex>
@@ -24,6 +21,8 @@ XXXXXnclude <sstream>
 #include <readline/history.h>
 
 #include <jank.hh>
+
+using namespace std::literals::string_literals;
 
 namespace config {
 
@@ -102,7 +101,7 @@ namespace config {
 		int opt;
 		struct stat sb;
 
-		while((opt = getopt(argc, argv, "hvilatcDLd:w1:2:3:")) != -1) {
+		while((opt = getopt(argc, argv, "hvilatcDLd:wr1:2:3:")) != -1) {
 
 			switch(opt) {
 
@@ -115,6 +114,7 @@ namespace config {
 				case 'l': loco	  = not loco    ; break;
 				case 'a': autoretry = not autoretry ; break;
 				case 'w': writemode = not writemode ; break;
+				case 'r': readmode = not readmode ; break;
 
 				case '1': track1 = optarg; break;
 				case '2': track2 = optarg; break;
@@ -328,10 +328,10 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 	if(config::writemode)
 		exit(msr.write(config::track1,config::track2,config::track3) ? EXIT_SUCCESS : EXIT_FAILURE);
 	if(config::readmode) {
-		i(msr.read(config::track1,config::track2,config::track3)) {
-			print_track(1, track1);
-			print_track(2, track2);
-			print_track(3, track3);
+		if(msr.read(config::track1,config::track2,config::track3)) {
+			std::cout << (jank::track::is_ok(config::track1) ? config::track1 : "-"s) << '\t';
+			std::cout << (jank::track::is_ok(config::track2) ? config::track2 : "-"s) << '\t';
+			std::cout << (jank::track::is_ok(config::track3) ? config::track3 : "-"s) << std::endl;
 			exit(EXIT_SUCCESS);
 		}
 		exit(EXIT_FAILURE);
