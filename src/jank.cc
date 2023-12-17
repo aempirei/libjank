@@ -456,7 +456,7 @@ namespace jank {
 			track3 = std::string(cm.str(3).c_str(), cm.length(3));
 		}
 
-		return true;
+		return retval;
 	}
 	bool msr::rawrd(std::basic_string<unsigned char>& data) {
 
