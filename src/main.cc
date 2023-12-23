@@ -484,12 +484,7 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 								std::cout << std::endl;
 								std::cout << "[" << n << "] TRACK1 swipe card or press <ENTER> to stop." << std::endl;
 
-								while(not msr.write(t1, "", "") and retryWrite(n,cancel,msr,default_choice));
-
-								std::cout << std::endl;
-								std::cout << "[" << n << "] TRACK2 swipe card or press <ENTER> to stop." << std::endl;
-
-								while(not msr.write("", t2, "") and retryWrite(n,cancel,msr,default_choice));
+								while(not msr.write(t1, t2, "") and retryWrite(n,cancel,msr,default_choice));
 								
 								msleep(500);
 							}
