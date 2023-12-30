@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <regex>
 #include <list>
+#include <span>
 #include <algorithm>
 
 #include <cstring>
@@ -35,7 +36,7 @@ namespace config {
 	bool autoretry = false;
 	bool loco = false;
 	bool writemode = false;
-	bool readmode = false;
+	const char *fmts = nullptr;
 
 	std::string track1;
 	std::string track2;
@@ -75,7 +76,7 @@ namespace config {
 		std::cout << "\t-l          toggle LO-CO mode (default="                    << (loco      ? "ENABLED" : "DISABLED") << ")" << std::endl;
 		std::cout << "\t-a          toggle auto-retry mode (default="               << (autoretry ? "ENABLED" : "DISABLED") << ")" << std::endl;
 		std::cout << "\t-w          toggle write mode (default="                    << (writemode ? "ENABLED" : "DISABLED") << ")" << std::endl;
-		std::cout << "\t-r          toggle read mode (default="                     << (readmode ? "ENABLED" : "DISABLED") << ")" << std::endl;
+		std::cout << "\t-r fmts     enable read mode using specified format string" << std::endl;
 		std::cout << "\t-1 track1   track1 data" << std::endl; 
 		std::cout << "\t-2 track2   track2 data" << std::endl; 
 		std::cout << "\t-3 track3   track3 data" << std::endl; 
@@ -84,6 +85,14 @@ namespace config {
 		std::cout << "\t            default device filename search patterns:";
 		for(auto fmt : device_formats)
 			std::cout << ' ' << fmt;
+		std::cout << "\tformat strings" << std::endl;
+		std::cout << "\t%a     account number" << std::endl;
+		std::cout << "\t%[0]m  month with optional leading zero modifier" << std::endl;
+		std::cout << "\t%[0]y  year with optional leading zero modifier" << std::endl;
+		std::cout << "\t%c     century" << std::endl;
+		std::cout << "\t%B     track1" << std::endl;
+		std::cout << "\t%;     track2" << std::endl;
+		std::cout << "\t%%     literal %" << std::endl;
 		std::cout << std::endl;
 
 		std::cout << std::endl;
@@ -101,7 +110,7 @@ namespace config {
 		int opt;
 		struct stat sb;
 
-		while((opt = getopt(argc, argv, "hvilatcDLd:wr1:2:3:")) != -1) {
+		while((opt = getopt(argc, argv, "hvilatcDLd:wr:1:2:3:")) != -1) {
 
 			switch(opt) {
 
@@ -114,8 +123,7 @@ namespace config {
 				case 'l': loco	  = not loco    ; break;
 				case 'a': autoretry = not autoretry ; break;
 				case 'w': writemode = not writemode ; break;
-				case 'r': readmode = not readmode ; break;
-
+				case 'r': fmts = optarg; break;
 				case '1': track1 = optarg; break;
 				case '2': track2 = optarg; break;
 				case '3': track3 = optarg; break;
@@ -123,7 +131,7 @@ namespace config {
 
 				case 'h':
 				default:
-					  return false;
+						  return false;
 			}
 		}
 
@@ -158,9 +166,11 @@ bool write1();
 bool read1();
 bool erase1();
 
-int prefixmatch(const char *s, const char *p) {
+bool prefixmatch(const char *s, const char *p) {
 	size_t n = strlen(p);
-	return strncasecmp(s,p,n) == 0 && (s[n] == '\0' || s[n] == ' ' || s[n] == '\t');
+	while(isspace(*s))
+		s++;
+	return strncasecmp(s,p,n) == 0 && (isspace(s[n]) or s[n] == '\0');
 }
 
 bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice) {
@@ -199,8 +209,75 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 	return true;
 }
 
+std::string format_read(const char *fmts, const std::string& t1, const std::string& t2) {
+	auto _B_ = jank::track::is_ok(t1) ? t1 : "-"s;
+	auto st2 = jank::track::is_ok(t1) ? t2 : "-"s;
+	auto as = st2.begin();
+	auto end2 = st2.end();
+	std::string _a_;
+	std::string _0m_;
+	std::string _m_;
+	std::string _0y_;
+	std::string _y_;
+	std::string _c_;
 
-	int main(int argc, char **argv) {
+	if(as != end2 and *as == ';') {
+		auto ae = ++as;
+		while(ae != end2 and *ae != '=')
+			ae++;
+		if(ae != end2 and *ae == '=') {
+			_a_ = std::string(as,ae);
+			auto ys = ae + 1;
+			auto ye = ys + 2;
+			auto y0 = ys;
+			auto ms = ye;
+			auto m0 = ms;
+			auto me = ms + 2;
+			if(*ys == '0')
+				ys++;
+			if(*ms == '0')
+				ms++;
+			if(me <= end2) {
+				_c_ = "20"s;
+				_0y_ = std::string(y0,ye);
+				_y_ = std::string(ys,ye);
+				_0m_ = std::string(m0,me);
+				_m_ = std::string(ms,me);
+			}
+		}
+	}
+
+	std::stringstream ss;
+	std::span sp(fmts, strlen(fmts));
+
+	for(auto it = sp.begin(); it != sp.end(); it++) {
+		if(*it == '%') {
+			if(++it == sp.end()) {
+				ss.put('%');
+				break;
+			}
+			bool _0_ = (*it == '0');
+			if(_0_)
+				it++;
+			switch(*it) {
+				case 'c': ss << _c_; break;
+				case 'y': ss << (_0_ ? _0y_ : _y_); break;
+				case 'm': ss << (_0_ ? _0m_ : _m_); break;
+				case 'a': ss << _a_; break;
+				case 'B': ss << _B_; break;
+				case ';': ss << st2; break;
+				case '%': ss.put('%'); break;
+			}
+		} else {
+			ss.put(*it);
+		}
+	}
+
+	return ss.str();
+}
+
+
+int main(int argc, char **argv) {
 
 	auto& msr = config::msr;
 
@@ -327,11 +404,10 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 
 	if(config::writemode)
 		exit(msr.write(config::track1,config::track2,config::track3) ? EXIT_SUCCESS : EXIT_FAILURE);
-	if(config::readmode) {
+	if(config::fmts != nullptr) {
 		if(msr.read(config::track1,config::track2,config::track3)) {
-			std::cout << (jank::track::is_ok(config::track1) ? config::track1 : "-"s) << '\t';
-			std::cout << (jank::track::is_ok(config::track2) ? config::track2 : "-"s) << '\t';
-			std::cout << (jank::track::is_ok(config::track3) ? config::track3 : "-"s) << std::endl;
+			std::cout << "format specifier :: " << config::fmts << std::endl;
+			std::cout << format_read(config::fmts, config::track1, config::track2) << std::endl;
 			exit(EXIT_SUCCESS);
 		}
 		exit(EXIT_FAILURE);
@@ -485,18 +561,18 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 								std::cout << "[" << n << "] TRACK1 swipe card or press <ENTER> to stop." << std::endl;
 
 								while(not msr.write(t1, t2, "") and retryWrite(n,cancel,msr,default_choice));
-								
+
 								msleep(500);
 							}
 						}
 					}
 				}
-	
+
 			} else if(prefixmatch(line, "T1T2")) {
 				int n = 0;
 				char fn[256];
 				int first_n = 1;
-				int k = sscanf(line, "%*s %255s %d", fn, &first_n);
+				int k = sscanf(line, " %*s %255s %d ", fn, &first_n);
 
 				if(k > 0) {
 					FILE *f = fopen(fn, "r");
@@ -513,6 +589,7 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 							auto pos = s.find('\t');
 							std::string t1(s.begin(), s.begin() + pos);
 							std::string t2(s.begin() + pos + 1, s.end() - 1);
+							std::cout << std::endl;
 							std::cout << "[" << ++n << "] track1 = " << t1 << " track2 = " << t2;
 							if(n < first_n) {
 								std::cout << " : skipping" << std::endl;
@@ -522,8 +599,10 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 
 								std::cout << "[" << n << "] swipe for track1 = " << t1 << std::endl;
 								while(not msr.write(t1, "", "") and retryWrite(n,cancel,msr,default_choice));
-								
+
 								msleep(500);
+
+								std::cout << std::endl;
 
 								if(not cancel) {
 									std::cout << "[" << n << "] swipe for track2 = " << t2 << std::endl;
@@ -539,7 +618,7 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 				int n = 0;
 				char fn[256];
 				int first_n = 1;
-				int k = sscanf(line, "%*s %255s %d", fn, &first_n);
+				int k = sscanf(line, " %*s %255s %d ", fn, &first_n);
 
 				if(k > 0) {
 					FILE *f = fopen(fn, "r");
@@ -564,7 +643,7 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 									std::cout << " : skipping" << std::endl;
 								} else {
 									std::cout << std::endl;
-	 								std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
+									std::cout << "[" << n << "] swipe card or press <ENTER> to stop." << std::endl;
 
 									while(not msr.write("", track2, "") and retryWrite(n,cancel,msr,default_choice));
 
