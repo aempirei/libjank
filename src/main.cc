@@ -406,7 +406,6 @@ int main(int argc, char **argv) {
 		exit(msr.write(config::track1,config::track2,config::track3) ? EXIT_SUCCESS : EXIT_FAILURE);
 	if(config::fmts != nullptr) {
 		if(msr.read(config::track1,config::track2,config::track3)) {
-			std::cout << "format specifier :: " << config::fmts << std::endl;
 			std::cout << format_read(config::fmts, config::track1, config::track2) << std::endl;
 			exit(EXIT_SUCCESS);
 		}
