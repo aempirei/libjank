@@ -211,7 +211,7 @@ bool retryWrite(const int& n, bool& cancel, jank::msr& msr, char default_choice)
 
 std::string format_read(const char *fmts, const std::string& t1, const std::string& t2) {
 	auto _B_ = jank::track::is_ok(t1) ? t1 : "-"s;
-	auto st2 = jank::track::is_ok(t1) ? t2 : "-"s;
+	auto st2 = jank::track::is_ok(t2) ? t2 : "-"s;
 	auto as = st2.begin();
 	auto end2 = st2.end();
 	std::string _a_;
